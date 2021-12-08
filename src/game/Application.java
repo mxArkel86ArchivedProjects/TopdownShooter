@@ -23,7 +23,9 @@ import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -39,8 +41,8 @@ public class Application extends JFrame {
 	GraphicsConfiguration config = device.getDefaultConfiguration();
 
 	// Application Semi-Constants
-	int CANW;
-	int CANH;
+	int CANW = 650;
+	int CANH = 500;
 	Peripherals PERI;
 	AssetManager AMGR;
 
@@ -59,13 +61,10 @@ public class Application extends JFrame {
 
 			g2d.setRenderingHints(rh);
 
-			float scaling = 1.0f;
-			int scaled_w = (int) (CANW * scaling);
-			int scaled_h = (int) (CANH * scaling);
-			BufferedImage canvas = new BufferedImage(scaled_w, scaled_h, BufferedImage.TYPE_INT_RGB);
+			//BufferedImage canvas = new BufferedImage(CANW, CANH, BufferedImage.TYPE_INT_RGB);
 
-			paint_(canvas.getGraphics(), scaled_w, scaled_h);
-			g2d.drawImage(canvas, 0, 0, CANW, CANH, Color.WHITE, null);
+			paint_(g2d);
+			//g2d.drawImage(canvas, 0, 0, Color.WHITE, null);
 
 		}
 	};
@@ -84,17 +83,26 @@ public class Application extends JFrame {
 	double camera_y = 0;
 	double mouse_x = 0;
 	double mouse_y = 0;
+	boolean mouse_clicked = false;
+	double mouse_click_x;
+	double mouse_click_y;
+	
+	final int LEVEL_W = 50;
+	final int LEVEL_H = 50;
+	Tile level[][] = new Tile[LEVEL_W][LEVEL_H];
+
+	List<Bullet> bullets = new ArrayList<Bullet>();
 
 	// double viewing_angle = Math.PI / 6;
 
-	void paint_(Graphics g_base, int WIDTH, int HEIGHT) {
+	void paint_(Graphics g_base) {
 		Graphics2D g = (Graphics2D) g_base;
 
 		g.setColor(Color.WHITE);
-		g.fillRect(0, 0, (int) WIDTH, (int) HEIGHT);
+		g.fillRect(0, 0, (int) CANW, (int) CANH);
 
-		int COLUMNS = (int) ((int) Math.ceil(WIDTH / TILEBASESIZE) / zoom_mult) + 2;
-		int ROWS = (int) ((int) Math.ceil(HEIGHT / TILEBASESIZE) / zoom_mult) + 2;
+		int COLUMNS = (int) ((int) Math.ceil(CANW / TILEBASESIZE) / zoom_mult) + 2;
+		int ROWS = (int) ((int) Math.ceil(CANH / TILEBASESIZE) / zoom_mult) + 2;
 		double tilesize = TILEBASESIZE * zoom_mult;
 
 		new TileAction() {
@@ -126,11 +134,13 @@ public class Application extends JFrame {
 		g.setColor(Color.GREEN);
 		g.drawLine((int)player_x, (int)player_y, (int)mouse_x, (int)mouse_y);
 		g.fillRect((int)mouse_x-4, (int)mouse_y-4, 8, 8);
-	}
 
-	final int LEVEL_W = 50;
-	final int LEVEL_H = 50;
-	Tile level[][] = new Tile[LEVEL_W][LEVEL_H];
+		g.setColor(Color.BLUE);
+		for(int i =0;i<bullets.size();i++){
+			Bullet b = bullets.get(i);
+			g.fillOval((int)b.x-5, (int)b.y-5, 10, 10);
+		}
+	}
 
 	void tick(int tr) {
 
@@ -155,6 +165,31 @@ public class Application extends JFrame {
 			player_y -= displacement_y;
 		}
 		player_angle_facing = Math.atan2((mouse_y-player_y),(mouse_x-player_x));
+
+		if(mouse_clicked){
+			mouse_clicked = false;
+			System.out.println("clicked");
+			Bullet b = new Bullet();
+			b.x = player_x;
+			b.y = player_y;
+			b.angle = player_angle_facing;
+			b.speed = 1.5;
+			bullets.add(b);
+			
+		}
+
+		for(int i =0;i<bullets.size();i++){
+			Bullet b = bullets.get(i);
+			b.x+=Math.cos(b.angle)*b.speed;
+			b.y+=Math.sin(b.angle)*b.speed;
+			bullets.set(i, b);
+			if(b.x<0||b.x>CANW||b.y<0||b.y>CANH){
+				bullets.remove(i);
+				System.out.println(String.format("Removed bullet (%d)", i));
+				i--;
+				
+			}
+		}
 	}
 
 	BufferedImage rotateImage(BufferedImage img, double angle) {
@@ -243,16 +278,24 @@ public class Application extends JFrame {
 		AMGR.addAsset("wood", ImageFile("assets/wood.jpeg"));
 	}
 
-	float zoom = 0;
-	float zoom_speed = 0.02f;
-
 	public void addEventHooks() {
-		PERI.addMouseMoveHook(new MouseMoveEvent(){
+		PERI.addMouseMoveHook(new MouseEvent(){
 
 			@Override
 			public void action(double x, double y) {
 				mouse_x = x;
 				mouse_y = y;
+			}
+
+		});
+
+		PERI.addMouseClickHook(new MouseEvent(){
+
+			@Override
+			public void action(double x, double y) {
+				mouse_clicked = true;
+				mouse_click_x = x;
+				mouse_click_y = y;
 			}
 
 		});
@@ -283,9 +326,9 @@ public class Application extends JFrame {
 		PERI = new Peripherals();
 		AMGR = new AssetManager();
 		this.addKeyListener(PERI);
-		this.addMouseListener(PERI);
+		panel.addMouseListener(PERI);
 		panel.addMouseMotionListener(PERI);
-		this.addMouseWheelListener(PERI);
+		panel.addMouseWheelListener(PERI);
 
 		ImportAssets();
 

@@ -12,7 +12,8 @@ import javax.swing.event.MouseInputListener;
 public class Peripherals implements KeyListener, MouseInputListener, MouseWheelListener {
     public Map<Integer, Boolean> keyboard = new HashMap<Integer, Boolean>();
     Map<Integer, ScrollEvent> scroll_hook = new HashMap<Integer, ScrollEvent>();
-    Map<Integer, MouseMoveEvent> mousemove_hook = new HashMap<Integer, MouseMoveEvent>();
+    Map<Integer, MouseEvent> mousemove_hook = new HashMap<Integer, MouseEvent>();
+    Map<Integer, MouseEvent> mouseclick_hook = new HashMap<Integer, MouseEvent>();
 
     public boolean keyPressed(char c){
         int code = java.awt.event.KeyEvent.getExtendedKeyCodeForChar(c);
@@ -40,7 +41,7 @@ public class Peripherals implements KeyListener, MouseInputListener, MouseWheelL
     public void removeScrollHook(int i){
         scroll_hook.remove(i);
     }
-    public int addMouseMoveHook(MouseMoveEvent e){
+    public int addMouseMoveHook(MouseEvent e){
         int i;
         for(i = 0;i<100;i++){
             if(mousemove_hook.get(i)==null)
@@ -52,6 +53,19 @@ public class Peripherals implements KeyListener, MouseInputListener, MouseWheelL
 
     public void removeMouseMoveHook(int i){
         mousemove_hook.remove(i);
+    }
+    public int addMouseClickHook(MouseEvent e){
+        int i;
+        for(i = 0;i<100;i++){
+            if(mouseclick_hook.get(i)==null)
+                break;
+        }
+        mouseclick_hook.put(i, e);
+        return i;
+    }
+
+    public void removeMouseClickHook(int i){
+        mouseclick_hook.remove(i);
     }
 
     @Override
@@ -72,50 +86,6 @@ public class Peripherals implements KeyListener, MouseInputListener, MouseWheelL
     }
 
     @Override
-    public void mouseClicked(MouseEvent e) {
-        // TODO Auto-generated method stub
-        
-    }
-
-    @Override
-    public void mousePressed(MouseEvent e) {
-        // TODO Auto-generated method stub
-        
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent e) {
-        // TODO Auto-generated method stub
-        
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent e) {
-        // TODO Auto-generated method stub
-        
-    }
-
-    @Override
-    public void mouseExited(MouseEvent e) {
-        // TODO Auto-generated method stub
-        
-    }
-
-    @Override
-    public void mouseDragged(MouseEvent e) {
-        // TODO Auto-generated method stub
-        
-    }
-
-    @Override
-    public void mouseMoved(MouseEvent e) {
-        e.consume();
-        for(MouseMoveEvent ev : mousemove_hook.values()){
-            ev.action(e.getX(), e.getY());
-        }
-    }
-
-    @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
         e.consume();
         
@@ -124,6 +94,52 @@ public class Peripherals implements KeyListener, MouseInputListener, MouseWheelL
             ev.action(val, e.getX(), e.getY());
         }
         
+    }
+
+    @Override
+    public void mouseClicked(java.awt.event.MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void mousePressed(java.awt.event.MouseEvent e) {
+        e.consume();
+        for(MouseEvent ev : mouseclick_hook.values()){
+            ev.action(e.getX(), e.getY());
+        }
+    }
+
+    @Override
+    public void mouseReleased(java.awt.event.MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void mouseEntered(java.awt.event.MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void mouseExited(java.awt.event.MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void mouseDragged(java.awt.event.MouseEvent e) {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void mouseMoved(java.awt.event.MouseEvent e) {
+        e.consume();
+        for(MouseEvent ev : mousemove_hook.values()){
+            ev.action(e.getX(), e.getY());
+        }
     }
     
 }
