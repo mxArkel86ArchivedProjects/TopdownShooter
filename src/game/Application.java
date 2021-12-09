@@ -8,6 +8,8 @@ import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.Stroke;
@@ -25,6 +27,8 @@ import game.templates.Bullet;
 import game.templates.DynamicGameObject;
 import game.templates.GameObject;
 import game.templates.Player;
+import game.templates.Point;
+import game.templates.Rect;
 import game.templates.TileObject;
 import util.ImageUtil;
 import util.MathUtil;
@@ -62,11 +66,10 @@ public class Application extends JFrame {
 
 			g2d.setRenderingHints(rh);
 
-			//BufferedImage canvas = new BufferedImage(CANW, CANH, BufferedImage.TYPE_INT_RGB);
+			// BufferedImage canvas = new BufferedImage(CANW, CANH,
+			// BufferedImage.TYPE_INT_RGB);
 
 			paint_(g2d);
-			//g2d.drawImage(canvas, 0, 0, Color.WHITE, null);
-
 		}
 	};
 
@@ -128,15 +131,17 @@ public class Application extends JFrame {
 		g.setColor(Color.GREEN);
 		g.drawLine((int) p.centerx(), (int) p.centery(), (int) mouse_x, (int) mouse_y);
 		g.fillRect((int) mouse_x - 4, (int) mouse_y - 4, 8, 8);
-		
+
 		g.setColor(Color.RED);
-		g.drawLine((int) p.centerx(), (int) p.centery(), (int)(Math.cos(p.angle)*10+p.centerx()), (int) (Math.sin(p.angle)*10+p.centery()));
-		g.fillRect((int)(Math.cos(p.angle)*50+p.centerx()-4), (int) (Math.sin(p.angle)*50+p.centery()-4), 8, 8);
+		g.drawLine((int) p.centerx(), (int) p.centery(), (int) (Math.cos(p.angle) * 10 + p.centerx()),
+				(int) (Math.sin(p.angle) * 10 + p.centery()));
+		g.fillRect((int) (Math.cos(p.angle) * 50 + p.centerx() - 4), (int) (Math.sin(p.angle) * 50 + p.centery() - 4),
+				8, 8);
 
 		for (Bullet b : bullets) {
 			b.paint(g);
 			g.setColor(Color.RED);
-			g.drawRect((int)b.x, (int)b.y, (int)b.width, (int)b.height);
+			g.drawRect((int) b.x, (int) b.y, (int) b.width, (int) b.height);
 		}
 
 		p.paint(g);
@@ -150,45 +155,85 @@ public class Application extends JFrame {
 		return ret;
 	}
 
+	Point[] RotatePoints(double angle, Point in[]) {
+		Point targets[] = new Point[in.length];
+		Point2D points_in[] = new Point2D[in.length];
+		Point2D points_out[] = new Point2D[in.length];
+		double x = 0;
+		double x_ = 0;
+		double y = 0;
+		double y_ = 0;
+
+		for (Point p : in) {
+			if (p.x > x_)
+				x_ = p.x;
+			if (p.x < x)
+				x = p.x;
+			if (p.y > y_)
+				y_ = p.y;
+			if (p.y < y)
+				y = p.y;
+		}
+		int w = (int) (x_ - x);
+		int h = (int) (y_ - y);
+
+		points_in = Point.toPoints(in);
+
+		AffineTransform tf = AffineTransform.getRotateInstance(angle, w / 2.0, h / 2.0);
+		tf.transform(points_in, 0, points_out, 0, in.length);
+		targets = Point.toPoints(points_out);
+		return targets;
+	}
+
 	CollisionReturn staticDynamicCollision(DynamicGameObject a, GameObject b) {
 		final double COLLISION_BUFFER = 4;
 		CollisionReturn ret = new CollisionReturn();
 
-		double cx = Math.cos(a.angle)*a.magnitude;
-		double cy = Math.sin(a.angle)*a.magnitude;
+		double cx = Math.cos(a.angle) * a.magnitude;
+		double cy = Math.sin(a.angle) * a.magnitude;
 
-		boolean inline_x = (a.bottom()+cy+COLLISION_BUFFER > b.top()
-				&& a.top()+cy+COLLISION_BUFFER < b.top())
-				|| (a.top()+cy-COLLISION_BUFFER < b.bottom()
-						&& a.bottom()+cy+COLLISION_BUFFER > b.bottom());
-		boolean inline_y = (a.right()+cx+COLLISION_BUFFER > b.left()
-				&& a.left()+cx-COLLISION_BUFFER < b.left())
-				|| (a.left()+cx-COLLISION_BUFFER < b.right()
-						&& a.right()+cx+COLLISION_BUFFER > b.right());
+		Point[] points = RotatePoints(a.angle, b.getObjectPoints());
+		for (Point p : points) {
+			//System.out.println(String.format("%.1f %.1f", p.x, p.y));
+		}
 
-		if (inline_x && Math.abs(Math.sin(a.angle))>0.1) {// may be colliding horizontally
-			if (a.left()+cx-COLLISION_BUFFER < b.right() && a.right()+cx+COLLISION_BUFFER > b.right()) {// left into right side
-				ret.left = a.left() - b.right();
-				a.x = b.right();
-			}
-			if (a.right()+cx +COLLISION_BUFFER> b.left() && a.left()+cx-COLLISION_BUFFER < b.left()) {// right into left side
-				ret.right = b.right() - a.left();
-				a.x = b.left() - a.width;
-			}
-			
-		}
-		
-		if (inline_y) {// may be colliding vertically
-			if (a.bottom()+cx+COLLISION_BUFFER > b.top() && a.top()+cx-COLLISION_BUFFER < b.top()) {// bottom into top side
-				ret.top = b.top() - a.bottom();
-				a.y = b.top() - a.height;
-			}
-			if (a.top()+cx-COLLISION_BUFFER< b.bottom() && a.bottom()+cx+COLLISION_BUFFER > b.bottom()) {// top into bottom side
-				ret.bottom = a.top() - b.bottom();
-				a.y = b.bottom();
-			}
-		}
-		ret.colliding = ret.top!=-1||ret.left!=-1||ret.bottom!=-1||ret.right!=-1;
+		// boolean inline_x = (a.bottom()+cy+COLLISION_BUFFER > b.top()
+		// && a.top()+cy+COLLISION_BUFFER < b.top())
+		// || (a.top()+cy-COLLISION_BUFFER < b.bottom()
+		// && a.bottom()+cy+COLLISION_BUFFER > b.bottom());
+		// boolean inline_y = (a.right()+cx+COLLISION_BUFFER > b.left()
+		// && a.left()+cx-COLLISION_BUFFER < b.left())
+		// || (a.left()+cx-COLLISION_BUFFER < b.right()
+		// && a.right()+cx+COLLISION_BUFFER > b.right());
+
+		// if (inline_x && Math.abs(Math.sin(a.angle))>0.1) {// may be colliding
+		// horizontally
+		// if (a.left()+cx-COLLISION_BUFFER < b.right() && a.right()+cx+COLLISION_BUFFER
+		// > b.right()) {// left into right side
+		// ret.left = a.left() - b.right();
+		// a.x = b.right();
+		// }
+		// if (a.right()+cx +COLLISION_BUFFER> b.left() && a.left()+cx-COLLISION_BUFFER
+		// < b.left()) {// right into left side
+		// ret.right = b.right() - a.left();
+		// a.x = b.left() - a.width;
+		// }
+
+		// }
+
+		// if (inline_y) {// may be colliding vertically
+		// if (a.bottom()+cx+COLLISION_BUFFER > b.top() && a.top()+cx-COLLISION_BUFFER <
+		// b.top()) {// bottom into top side
+		// ret.top = b.top() - a.bottom();
+		// a.y = b.top() - a.height;
+		// }
+		// if (a.top()+cx-COLLISION_BUFFER< b.bottom() && a.bottom()+cx+COLLISION_BUFFER
+		// > b.bottom()) {// top into bottom side
+		// ret.bottom = a.top() - b.bottom();
+		// a.y = b.bottom();
+		// }
+		// }
+		ret.colliding = ret.top != -1 || ret.left != -1 || ret.bottom != -1 || ret.right != -1;
 		return ret;
 	}
 
@@ -261,20 +306,20 @@ public class Application extends JFrame {
 						Tile tile = level[px][py];
 						TileObject obj = tile.tree;
 
-						GameObject obj2 = new GameObject(){
+						GameObject obj2 = new GameObject() {
 							@Override
 							public void paint(Graphics2D g) {
 							}
 						};
-						obj2.x = dx+obj.lx*tilesize;
-						obj2.y = dy+obj.ly*tilesize;
-						obj2.width = obj.lwidth*tilesize;
-						obj2.height = obj.lheight*tilesize;
-					
-						for (int i = 0;i<bullets.size();i++) {
+						obj2.x = dx + obj.lx * tilesize;
+						obj2.y = dy + obj.ly * tilesize;
+						obj2.width = obj.lwidth * tilesize;
+						obj2.height = obj.lheight * tilesize;
+
+						for (int i = 0; i < bullets.size(); i++) {
 							Bullet b_ = bullets.get(i);
 							CollisionReturn ret = staticDynamicCollision(b_, obj2);
-							if(ret.colliding){
+							if (ret.colliding) {
 								b_.magnitude = 0;
 								bullets.set(i, b_);
 							}
@@ -528,7 +573,8 @@ class Tile {
 
 			@Override
 			public void paint(Graphics2D g, double dx, double dy, double gridsize) {
-				g.drawImage(Application.AMGR.getAsset(asset).src, (int)(lx*gridsize+dx), (int)(ly*gridsize+dy), (int)(lwidth*gridsize), (int)(lheight*gridsize), null);
+				g.drawImage(Application.AMGR.getAsset(asset).src, (int) (lx * gridsize + dx),
+						(int) (ly * gridsize + dy), (int) (lwidth * gridsize), (int) (lheight * gridsize), null);
 			}
 
 		};

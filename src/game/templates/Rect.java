@@ -5,7 +5,7 @@ public class Rect {
     public double y;
     public double width;
     public double height;
-    Rect(double x, double y, double width, double height){
+    public Rect(double x, double y, double width, double height){
         this.x = x;
         this.y = y;
         this.width = width;
@@ -13,6 +13,9 @@ public class Rect {
     }
     public Point[] getPoints(){
         return new Point[]{new Point(x, y), new Point(x+width, y), new Point(x+width, y+height), new Point(x, y+height)};
+    }
+    public Point[] getObjectPoints(){
+        return new Point[]{new Point(0,0), new Point(width, 0), new Point(width, height), new Point(0, height)};
     }
     Rect(){
 
