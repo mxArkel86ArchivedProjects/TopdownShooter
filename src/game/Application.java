@@ -10,10 +10,7 @@ import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Point2D;
-import java.awt.Image;
 import java.awt.RenderingHints;
-import java.awt.Stroke;
-import java.awt.BasicStroke;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +25,6 @@ import game.templates.DynamicGameObject;
 import game.templates.GameObject;
 import game.templates.Player;
 import game.templates.Point;
-import game.templates.Rect;
 import game.templates.TileObject;
 import util.ImageUtil;
 import util.MathUtil;
@@ -73,7 +69,7 @@ public class Application extends JFrame {
 		}
 	};
 
-	final int TILEBASESIZE = 80;
+	final int TILEBASESIZE = 40;
 	double zoom_mult = 1;
 	final int TILE_BUFFER = 3;
 	double camera_x = 0;
@@ -86,6 +82,8 @@ public class Application extends JFrame {
 
 	final int LEVEL_W = 50;
 	final int LEVEL_H = 50;
+	final double transition_edge = 0.2;
+	final double transition_corner = 0.25;
 	Tile level[][] = new Tile[LEVEL_W][LEVEL_H];
 
 	List<Bullet> bullets = new ArrayList<Bullet>();
@@ -108,8 +106,9 @@ public class Application extends JFrame {
 					int px, int py) {
 
 				if (px >= 0 && px < LEVEL_W && py >= 0 && py < LEVEL_H) {
+					//System.out.println(String.format("px=%d py=%d", px, py));
 					if (level[px][py] == null) {
-						g.drawImage(AMGR.getAsset("grass").src, (int) dx, (int) dy, (int) tilesize + TILE_BUFFER,
+						g.drawImage(AMGR.getAsset("debug_grad_floor").src, (int) dx, (int) dy, (int) tilesize + TILE_BUFFER,
 								(int) tilesize + TILE_BUFFER,
 								new Color(0, 0, 0, 0), null);
 					} else {
@@ -117,7 +116,7 @@ public class Application extends JFrame {
 								(int) tilesize + TILE_BUFFER, (int) tilesize + TILE_BUFFER,
 								new Color(0, 0, 0, 0), null);
 						TileObject tree = level[px][py].tree;
-						if (tree != null) {
+						if (level[px][py].showtree) {
 							tree.paint(g, dx, dy, tilesize);
 						}
 					}
@@ -143,6 +142,20 @@ public class Application extends JFrame {
 			g.setColor(Color.RED);
 			g.drawRect((int) b.x, (int) b.y, (int) b.width, (int) b.height);
 		}
+
+		g.setColor(new Color(255,0,0,40));
+		g.fillRect(0, (int)(CANH*(1-transition_edge)), CANW, (int)(CANH*transition_edge));
+		g.fillRect(0, 0, CANW, (int)(CANH*transition_edge));
+
+		g.setColor(new Color(0,255,0,40));
+		g.fillRect(0, 0, (int)(CANW*transition_edge), CANH);
+		g.fillRect((int)(CANW*(1-transition_edge)), 0, (int)(CANW*transition_edge), CANH);
+
+		g.setColor(new Color(0,0,255,40));
+		g.fillRect(0, 0, (int)(CANW*transition_corner), (int)(CANH*transition_corner));
+		g.fillRect(0, (int)(CANH*(1-transition_corner)), (int)(CANW*transition_corner), (int)(CANH*transition_corner));
+		g.fillRect((int)(CANW*(1-transition_corner)), (int)(CANH*(1-transition_corner)), (int)(CANW*transition_corner), (int)(CANH*transition_corner));
+		g.fillRect((int)(CANW*(1-transition_corner)), 0, (int)(CANW*transition_corner), (int)(CANH*transition_corner));
 
 		p.paint(g);
 	}
@@ -241,6 +254,12 @@ public class Application extends JFrame {
 		return false;
 	}
 
+	double animation_pos = 0;
+	boolean animating_screen = false;
+	double anim_speed_x = 0;
+	double anim_base_speed = 0.045;
+	double anim_speed_y = 0;
+	double anim_timer = 150;
 	void tick(int tr) {
 		int COLUMNS = (int) ((int) Math.ceil(CANW / TILEBASESIZE) / zoom_mult) + 2;
 		int ROWS = (int) ((int) Math.ceil(CANH / TILEBASESIZE) / zoom_mult) + 2;
@@ -276,6 +295,75 @@ public class Application extends JFrame {
 			b.angle = p.angle;
 			bullets.add(b);
 
+		}
+
+		if(p.centerx()>CANW*(1-transition_edge)){
+			animating_screen = true;
+			animation_pos = 0;
+			anim_speed_x=anim_base_speed;
+			anim_speed_y=0;
+		}
+		if(p.centerx()<CANW*transition_edge){
+			animating_screen = true;
+			animation_pos = 0;
+			anim_speed_x = -anim_base_speed;
+			anim_speed_y=0;
+		}
+		if(p.centery()<CANH*transition_edge){
+			animating_screen = true;
+			animation_pos = 0;
+			anim_speed_y = -anim_base_speed;
+			anim_speed_x=0;
+		}
+		if(p.centery()>CANH*(1-transition_edge)){
+			animating_screen = true;
+			animation_pos = 0;
+			anim_speed_y = anim_base_speed;
+			anim_speed_x=0;
+		}
+		if(p.centery()>CANH*(1-transition_corner) && p.centerx()>CANW*(1-transition_corner)){//bottom right
+			animating_screen = true;
+			animation_pos = 0;
+			anim_speed_y = anim_base_speed/Math.sqrt(2);
+			anim_speed_x= anim_base_speed/Math.sqrt(2);
+		}
+		if(p.centery()<CANH*transition_corner && p.centerx()>CANW*(1-transition_corner)){//top right
+			animating_screen = true;
+			animation_pos = 0;
+			anim_speed_y = -anim_base_speed/Math.sqrt(2);
+			anim_speed_x= anim_base_speed/Math.sqrt(2);
+		}
+		if(p.centery()<CANH*transition_corner && p.centerx()<CANW*transition_corner){//top left
+			animating_screen = true;
+			animation_pos = 0;
+			anim_speed_y = -anim_base_speed/Math.sqrt(2);
+			anim_speed_x= -anim_base_speed/Math.sqrt(2);
+		}
+		if(p.centery()>CANH*(1-transition_corner) && p.centerx()<CANW*transition_corner){//bottom left
+			animating_screen = true;
+			animation_pos = 0;
+			anim_speed_y = anim_base_speed/Math.sqrt(2);
+			anim_speed_x= -anim_base_speed/Math.sqrt(2);
+		}
+
+		if(animating_screen){
+			camera_x+=anim_speed_x;
+			p.x-=anim_speed_x*tilesize;
+			for(int i = 0;i<bullets.size();i++){
+				Bullet b = bullets.get(i);
+				b.x-=anim_speed_x*tilesize;
+				bullets.set(i, b);
+			}
+			camera_y+=anim_speed_y;
+			p.y-=anim_speed_y*tilesize;
+			for(int i = 0;i<bullets.size();i++){
+				Bullet b = bullets.get(i);
+				b.x-=anim_speed_y*tilesize;
+				bullets.set(i, b);
+			}
+			animation_pos+=1;
+			if(animation_pos>=anim_timer)
+				animating_screen = false;
 		}
 
 		for (int i = 0; i < bullets.size(); i++) {
@@ -513,6 +601,20 @@ public class Application extends JFrame {
 		 */
 	}
 
+	void InitializeLevel(){
+		for(int y=0;y<LEVEL_H;y++){
+			for(int x=0;x<LEVEL_W;x++){
+				Tile t = new Tile();
+				t.floor = AMGR.assetID("grass");
+				if(Math.random()>0.9f)
+					t.showtree = true;
+				else
+					t.showtree = false;
+				level[x][y] = t;
+			}
+		}
+	}
+
 	public void InitializeApplication() {
 		add(panel);
 
@@ -532,12 +634,12 @@ public class Application extends JFrame {
 
 		ImportAssets();
 
+		InitializeLevel();
+
 		addEventHooks();
 
 		p = new Player();
-		Tile t = new Tile(AMGR, "sand");
-
-		level[3][3] = t;
+		
 
 		// Event Timers (screen refresh/game time)
 		Timer timer = new Timer();
@@ -586,6 +688,7 @@ class Tile {
 	}
 
 	int floor = -1;
+	public boolean showtree;
 	TileObject tree;
 }
 
