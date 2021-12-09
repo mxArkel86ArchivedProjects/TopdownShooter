@@ -4,26 +4,21 @@ import java.awt.Color;
 import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 
-public class Player extends DynamicGameObject {
-    public Player(){
-        x = 300;
+public class Zombie extends DynamicGameObject {
+    public Zombie(){
+        x = 420;
         y = 400;
         width=30;
         height=30;
         magnitude = 0.8;
     }
 
-    final Color PLAYER_COLOR = Color.ORANGE;
+    final Color PLAYER_COLOR = new Color(70,186,56);
     final int ENTITY_BORDER_WEIGHT = 4;
     public final float SPRINT_MULT = 2f;
     final double HAND_DISTANCE = 25;
-    public final double SPRINT_DRAIN = 0.2;
-    public final double SPRINT_REGEN = 0.1;
-    public final int SPRINT_REGEN_DELAY = 120;
-    public int regen_delay_time; 
     final double HAND_SIZE = 10;
     public double health = 100;
-    public double sprint = 100;
     
     void drawCircle(Graphics2D g, double x, double y, double w, double h, Color c, double weight){
         g.setColor(c);
@@ -47,9 +42,10 @@ public class Player extends DynamicGameObject {
         double y2 = centery()+Math.sin(angle2)*HAND_DISTANCE;
         drawCircle(g, x2-HAND_SIZE/2, y2-HAND_SIZE/2, HAND_SIZE, HAND_SIZE, 
         PLAYER_COLOR, ENTITY_BORDER_WEIGHT/4);
-    }
 
-    public double speed(){
-        return magnitude;
+        g.setColor(Color.gray);
+        g.fillRect((int)centerx()-30, (int)y-20, 60, 10);
+        g.setColor(Color.RED);
+        g.fillRect((int)centerx()-27, (int)y-17, 54, 4);
     }
 }

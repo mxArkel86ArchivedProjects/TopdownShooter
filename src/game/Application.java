@@ -26,6 +26,7 @@ import game.templates.GameObject;
 import game.templates.Player;
 import game.templates.Point;
 import game.templates.TileObject;
+import game.templates.Zombie;
 import util.ImageUtil;
 import util.MathUtil;
 import util.MouseEvent;
@@ -46,6 +47,7 @@ public class Application extends JFrame {
 	static Peripherals PERI;
 	static AssetManager AMGR;
 	Player p;
+	List<Zombie> zombies = new ArrayList<Zombie>();
 
 	public JPanel panel = new JPanel() {
 		@Override
@@ -55,10 +57,10 @@ public class Application extends JFrame {
 
 			// Custom Screen Options
 			RenderingHints rh = new RenderingHints(RenderingHints.KEY_ANTIALIASING,
-					RenderingHints.VALUE_ANTIALIAS_OFF);
+					RenderingHints.VALUE_ANTIALIAS_ON);
 
 			rh.put(RenderingHints.KEY_RENDERING,
-					RenderingHints.VALUE_RENDER_SPEED);
+					RenderingHints.VALUE_RENDER_QUALITY);
 
 			g2d.setRenderingHints(rh);
 
@@ -106,9 +108,10 @@ public class Application extends JFrame {
 					int px, int py) {
 
 				if (px >= 0 && px < LEVEL_W && py >= 0 && py < LEVEL_H) {
-					//System.out.println(String.format("px=%d py=%d", px, py));
+					// System.out.println(String.format("px=%d py=%d", px, py));
 					if (level[px][py] == null) {
-						g.drawImage(AMGR.getAsset("debug_grad_floor").src, (int) dx, (int) dy, (int) tilesize + TILE_BUFFER,
+						g.drawImage(AMGR.getAsset("debug_grad_floor").src, (int) dx, (int) dy,
+								(int) tilesize + TILE_BUFFER,
 								(int) tilesize + TILE_BUFFER,
 								new Color(0, 0, 0, 0), null);
 					} else {
@@ -122,7 +125,7 @@ public class Application extends JFrame {
 					}
 				}
 
-				g.drawRect((int) dx, (int) dy, (int) tilesize, (int) tilesize);
+				//g.drawRect((int) dx, (int) dy, (int) tilesize, (int) tilesize);
 				return 0;
 			}
 		}.run(ROWS, COLUMNS, camera_x, camera_y, tilesize);
@@ -143,21 +146,41 @@ public class Application extends JFrame {
 			g.drawRect((int) b.x, (int) b.y, (int) b.width, (int) b.height);
 		}
 
-		g.setColor(new Color(255,0,0,40));
-		g.fillRect(0, (int)(CANH*(1-transition_edge)), CANW, (int)(CANH*transition_edge));
-		g.fillRect(0, 0, CANW, (int)(CANH*transition_edge));
+		g.setColor(new Color(255, 0, 0, 40));
+		g.fillRect(0, (int) (CANH * (1 - transition_edge)), CANW, (int) (CANH * transition_edge));
+		g.fillRect(0, 0, CANW, (int) (CANH * transition_edge));
 
-		g.setColor(new Color(0,255,0,40));
-		g.fillRect(0, 0, (int)(CANW*transition_edge), CANH);
-		g.fillRect((int)(CANW*(1-transition_edge)), 0, (int)(CANW*transition_edge), CANH);
+		g.setColor(new Color(0, 255, 0, 40));
+		g.fillRect(0, 0, (int) (CANW * transition_edge), CANH);
+		g.fillRect((int) (CANW * (1 - transition_edge)), 0, (int) (CANW * transition_edge), CANH);
 
-		g.setColor(new Color(0,0,255,40));
-		g.fillRect(0, 0, (int)(CANW*transition_corner), (int)(CANH*transition_corner));
-		g.fillRect(0, (int)(CANH*(1-transition_corner)), (int)(CANW*transition_corner), (int)(CANH*transition_corner));
-		g.fillRect((int)(CANW*(1-transition_corner)), (int)(CANH*(1-transition_corner)), (int)(CANW*transition_corner), (int)(CANH*transition_corner));
-		g.fillRect((int)(CANW*(1-transition_corner)), 0, (int)(CANW*transition_corner), (int)(CANH*transition_corner));
+		g.setColor(new Color(0, 0, 255, 40));
+		g.fillRect(0, 0, (int) (CANW * transition_corner), (int) (CANH * transition_corner));
+		g.fillRect(0, (int) (CANH * (1 - transition_corner)), (int) (CANW * transition_corner),
+				(int) (CANH * transition_corner));
+		g.fillRect((int) (CANW * (1 - transition_corner)), (int) (CANH * (1 - transition_corner)),
+				(int) (CANW * transition_corner), (int) (CANH * transition_corner));
+		g.fillRect((int) (CANW * (1 - transition_corner)), 0, (int) (CANW * transition_corner),
+				(int) (CANH * transition_corner));
 
 		p.paint(g);
+
+		for(Zombie z : zombies){
+			z.paint(g);
+		}
+		drawGUI(g);
+	}
+
+	void drawGUI(Graphics2D g) {
+		g.setColor(Color.GRAY);
+		g.fillRect(20, CANH - 74, 175, 20);
+		g.setColor(Color.YELLOW);
+		g.fillRect(24, CANH - 70, (int) (167.0f * p.sprint / 100), 12);
+
+		g.setColor(Color.GRAY);
+		g.fillRect(20, CANH - 104, 175, 20);
+		g.setColor(Color.RED);
+		g.fillRect(24, CANH - 100, (int) (167.0f * p.health / 100), 12);
 	}
 
 	CollisionReturn staticStaticCollision(GameObject a, GameObject b) {
@@ -207,7 +230,7 @@ public class Application extends JFrame {
 
 		Point[] points = RotatePoints(a.angle, b.getObjectPoints());
 		for (Point p : points) {
-			//System.out.println(String.format("%.1f %.1f", p.x, p.y));
+			// System.out.println(String.format("%.1f %.1f", p.x, p.y));
 		}
 
 		// boolean inline_x = (a.bottom()+cy+COLLISION_BUFFER > b.top()
@@ -260,6 +283,7 @@ public class Application extends JFrame {
 	double anim_base_speed = 0.045;
 	double anim_speed_y = 0;
 	double anim_timer = 150;
+
 	void tick(int tr) {
 		int COLUMNS = (int) ((int) Math.ceil(CANW / TILEBASESIZE) / zoom_mult) + 2;
 		int ROWS = (int) ((int) Math.ceil(CANH / TILEBASESIZE) / zoom_mult) + 2;
@@ -279,11 +303,24 @@ public class Application extends JFrame {
 		double displacement_x = 0;
 		double displacement_y = 0;
 		if (intent_x != 0 || intent_y != 0) {
-			float sprint = PERI.keyPressed(KeyEvent.VK_SHIFT) ? p.SPRINT_MULT : 1;
+			float sprint = PERI.keyPressed(KeyEvent.VK_SHIFT) && p.sprint > 20 ? p.SPRINT_MULT : 1;
 			double intent_direction = Math.atan2(intent_y, intent_x);
 			displacement_x = Math.cos(intent_direction) * p.speed() * sprint;
 			displacement_y = Math.sin(intent_direction) * p.speed() * sprint;
 
+		}
+		if (PERI.keyPressed(KeyEvent.VK_SHIFT)) {
+			if (p.sprint > 0)
+				p.sprint -= p.SPRINT_DRAIN;
+			p.regen_delay_time = 0;
+		} else {
+			if (p.sprint < 100) {
+				if (p.regen_delay_time != p.SPRINT_REGEN_DELAY) {
+					p.regen_delay_time++;
+				} else {
+					p.sprint += p.SPRINT_REGEN;
+				}
+			}
 		}
 
 		if (mouse_clicked) {
@@ -297,72 +334,76 @@ public class Application extends JFrame {
 
 		}
 
-		if(p.centerx()>CANW*(1-transition_edge)){
+		if (p.centerx() > CANW * (1 - transition_edge)) {
 			animating_screen = true;
 			animation_pos = 0;
-			anim_speed_x=anim_base_speed;
-			anim_speed_y=0;
+			anim_speed_x = anim_base_speed;
+			anim_speed_y = 0;
 		}
-		if(p.centerx()<CANW*transition_edge){
+		if (p.centerx() < CANW * transition_edge) {
 			animating_screen = true;
 			animation_pos = 0;
 			anim_speed_x = -anim_base_speed;
-			anim_speed_y=0;
+			anim_speed_y = 0;
 		}
-		if(p.centery()<CANH*transition_edge){
+		if (p.centery() < CANH * transition_edge) {
 			animating_screen = true;
 			animation_pos = 0;
 			anim_speed_y = -anim_base_speed;
-			anim_speed_x=0;
+			anim_speed_x = 0;
 		}
-		if(p.centery()>CANH*(1-transition_edge)){
+		if (p.centery() > CANH * (1 - transition_edge)) {
 			animating_screen = true;
 			animation_pos = 0;
 			anim_speed_y = anim_base_speed;
-			anim_speed_x=0;
+			anim_speed_x = 0;
 		}
-		if(p.centery()>CANH*(1-transition_corner) && p.centerx()>CANW*(1-transition_corner)){//bottom right
+		if (p.centery() > CANH * (1 - transition_corner) && p.centerx() > CANW * (1 - transition_corner)) {// bottom
+																											// right
 			animating_screen = true;
 			animation_pos = 0;
-			anim_speed_y = anim_base_speed/Math.sqrt(2);
-			anim_speed_x= anim_base_speed/Math.sqrt(2);
+			anim_speed_y = anim_base_speed / Math.sqrt(2);
+			anim_speed_x = anim_base_speed / Math.sqrt(2);
 		}
-		if(p.centery()<CANH*transition_corner && p.centerx()>CANW*(1-transition_corner)){//top right
+		if (p.centery() < CANH * transition_corner && p.centerx() > CANW * (1 - transition_corner)) {// top right
 			animating_screen = true;
 			animation_pos = 0;
-			anim_speed_y = -anim_base_speed/Math.sqrt(2);
-			anim_speed_x= anim_base_speed/Math.sqrt(2);
+			anim_speed_y = -anim_base_speed / Math.sqrt(2);
+			anim_speed_x = anim_base_speed / Math.sqrt(2);
 		}
-		if(p.centery()<CANH*transition_corner && p.centerx()<CANW*transition_corner){//top left
+		if (p.centery() < CANH * transition_corner && p.centerx() < CANW * transition_corner) {// top left
 			animating_screen = true;
 			animation_pos = 0;
-			anim_speed_y = -anim_base_speed/Math.sqrt(2);
-			anim_speed_x= -anim_base_speed/Math.sqrt(2);
+			anim_speed_y = -anim_base_speed / Math.sqrt(2);
+			anim_speed_x = -anim_base_speed / Math.sqrt(2);
 		}
-		if(p.centery()>CANH*(1-transition_corner) && p.centerx()<CANW*transition_corner){//bottom left
+		if (p.centery() > CANH * (1 - transition_corner) && p.centerx() < CANW * transition_corner) {// bottom left
 			animating_screen = true;
 			animation_pos = 0;
-			anim_speed_y = anim_base_speed/Math.sqrt(2);
-			anim_speed_x= -anim_base_speed/Math.sqrt(2);
+			anim_speed_y = anim_base_speed / Math.sqrt(2);
+			anim_speed_x = -anim_base_speed / Math.sqrt(2);
 		}
 
-		if(animating_screen){
-			camera_x+=anim_speed_x;
-			p.x-=anim_speed_x*tilesize;
-			for(int i = 0;i<bullets.size();i++){
+		if (animating_screen) {
+			camera_x += anim_speed_x;
+			p.x -= anim_speed_x * tilesize;
+			camera_y += anim_speed_y;
+			p.y -= anim_speed_y * tilesize;
+			for (int i = 0; i < bullets.size(); i++) {
 				Bullet b = bullets.get(i);
-				b.x-=anim_speed_x*tilesize;
+				b.x -= anim_speed_x * tilesize;
+				b.y -= anim_speed_y * tilesize;
 				bullets.set(i, b);
 			}
-			camera_y+=anim_speed_y;
-			p.y-=anim_speed_y*tilesize;
-			for(int i = 0;i<bullets.size();i++){
-				Bullet b = bullets.get(i);
-				b.x-=anim_speed_y*tilesize;
-				bullets.set(i, b);
+			for (int i = 0; i < zombies.size(); i++) {
+				Zombie z = zombies.get(i);
+				z.x -= anim_speed_x * tilesize;
+				z.y -= anim_speed_y * tilesize;
+				zombies.set(i, z);
 			}
-			animation_pos+=1;
-			if(animation_pos>=anim_timer)
+
+			animation_pos += 1;
+			if (animation_pos >= anim_timer)
 				animating_screen = false;
 		}
 
@@ -601,17 +642,24 @@ public class Application extends JFrame {
 		 */
 	}
 
-	void InitializeLevel(){
-		for(int y=0;y<LEVEL_H;y++){
-			for(int x=0;x<LEVEL_W;x++){
+	void InitializeLevel() {
+		for (int y = 0; y < LEVEL_H; y++) {
+			for (int x = 0; x < LEVEL_W; x++) {
 				Tile t = new Tile();
 				t.floor = AMGR.assetID("grass");
-				if(Math.random()>0.9f)
+				if (Math.random() > 0.9f)
 					t.showtree = true;
 				else
 					t.showtree = false;
 				level[x][y] = t;
 			}
+		}
+	}
+
+	void InitializeEnemies(){
+		for(int i = 0;i<1;i++){
+			Zombie z = new Zombie();
+			zombies.add(z);
 		}
 	}
 
@@ -635,11 +683,11 @@ public class Application extends JFrame {
 		ImportAssets();
 
 		InitializeLevel();
+		InitializeEnemies();
 
 		addEventHooks();
 
 		p = new Player();
-		
 
 		// Event Timers (screen refresh/game time)
 		Timer timer = new Timer();
