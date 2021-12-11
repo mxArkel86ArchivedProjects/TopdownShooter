@@ -8,14 +8,15 @@ public class Player extends DynamicGameObject {
     public Player(){
         x = 300;
         y = 400;
-        width=30;
-        height=30;
+        width=34;
+        height=34;
         magnitude = 0.8;
     }
 
     final Color PLAYER_COLOR = Color.ORANGE;
     final int ENTITY_BORDER_WEIGHT = 4;
     public final float SPRINT_MULT = 2f;
+    public final double BASE_SPEED = 1;
     final double HAND_DISTANCE = 25;
     public final double SPRINT_DRAIN = 0.2;
     public final double SPRINT_REGEN = 0.1;
@@ -24,6 +25,7 @@ public class Player extends DynamicGameObject {
     final double HAND_SIZE = 10;
     public double health = 100;
     public double sprint = 100;
+    public double look_angle =0;
     
     void drawCircle(Graphics2D g, double x, double y, double w, double h, Color c, double weight){
         g.setColor(c);
@@ -36,13 +38,13 @@ public class Player extends DynamicGameObject {
     public void paint(Graphics2D g) {
         drawCircle(g, x, y, width, height, PLAYER_COLOR, ENTITY_BORDER_WEIGHT);
         
-        double angle1 = angle+Math.PI/8;
+        double angle1 = look_angle+Math.PI/8;
         double x1 = centerx()+Math.cos(angle1)*HAND_DISTANCE;
         double y1 = centery()+Math.sin(angle1)*HAND_DISTANCE;
         drawCircle(g, x1-HAND_SIZE/2, y1-HAND_SIZE/2, HAND_SIZE, HAND_SIZE, 
         PLAYER_COLOR, ENTITY_BORDER_WEIGHT/4);
 
-        double angle2 = angle-Math.PI/8;
+        double angle2 = look_angle-Math.PI/8;
         double x2 = centerx()+Math.cos(angle2)*HAND_DISTANCE;
         double y2 = centery()+Math.sin(angle2)*HAND_DISTANCE;
         drawCircle(g, x2-HAND_SIZE/2, y2-HAND_SIZE/2, HAND_SIZE, HAND_SIZE, 

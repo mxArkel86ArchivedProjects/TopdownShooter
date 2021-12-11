@@ -8,8 +8,8 @@ public class Zombie extends DynamicGameObject {
     public Zombie(){
         x = 420;
         y = 400;
-        width=30;
-        height=30;
+        width=24;
+        height=24;
         magnitude = 0.8;
     }
 

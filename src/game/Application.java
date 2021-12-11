@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.awt.BasicStroke;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -42,8 +43,8 @@ public class Application extends JFrame {
 	GraphicsConfiguration config = device.getDefaultConfiguration();
 
 	// Application Semi-Constants
-	int CANW = 650;
-	int CANH = 500;
+	int CANW = 1280;
+	int CANH = 720;
 	static Peripherals PERI;
 	static AssetManager AMGR;
 	Player p;
@@ -109,23 +110,31 @@ public class Application extends JFrame {
 
 				if (px >= 0 && px < LEVEL_W && py >= 0 && py < LEVEL_H) {
 					// System.out.println(String.format("px=%d py=%d", px, py));
-					if (level[px][py] == null) {
-						g.drawImage(AMGR.getAsset("debug_grad_floor").src, (int) dx, (int) dy,
-								(int) tilesize + TILE_BUFFER,
-								(int) tilesize + TILE_BUFFER,
-								new Color(0, 0, 0, 0), null);
+					Tile tile = level[px][py];
+					if (tile == null) {
+						/*
+						 * g.drawImage(AMGR.getAsset("debug_grad_floor").src, (int) dx, (int) dy,
+						 * (int) tilesize + TILE_BUFFER,
+						 * (int) tilesize + TILE_BUFFER,
+						 * new Color(0, 0, 0, 0), null);
+						 */
+						g.setColor(Color.lightGray);
+						g.fillRect((int) dx, (int) dy, (int) (tilesize + TILE_BUFFER), (int) (tilesize + TILE_BUFFER));
 					} else {
-						g.drawImage(AMGR.getAsset(level[px][py].floor).src, (int) dx, (int) dy,
-								(int) tilesize + TILE_BUFFER, (int) tilesize + TILE_BUFFER,
-								new Color(0, 0, 0, 0), null);
-						TileObject tree = level[px][py].tree;
-						if (level[px][py].showtree) {
-							tree.paint(g, dx, dy, tilesize);
-						}
+						/*
+						 * g.drawImage(AMGR.getAsset(level[px][py].floor).src, (int) dx, (int) dy,
+						 * (int) tilesize + TILE_BUFFER, (int) tilesize + TILE_BUFFER,
+						 * new Color(0, 0, 0, 0), null);
+						 */
+						g.setColor(new Color(48, 173, 23));
+						g.fillRect((int) dx, (int) dy, (int) tilesize + TILE_BUFFER, (int) tilesize + TILE_BUFFER);
+						tile.DrawTileObjects(g, dx, dy, tilesize);
 					}
 				}
 
-				//g.drawRect((int) dx, (int) dy, (int) tilesize, (int) tilesize);
+				g.setStroke(new BasicStroke(1));
+				g.setColor(Color.BLACK);
+				g.drawRect((int) dx, (int) dy, (int) tilesize, (int) tilesize);
 				return 0;
 			}
 		}.run(ROWS, COLUMNS, camera_x, camera_y, tilesize);
@@ -135,9 +144,10 @@ public class Application extends JFrame {
 		g.fillRect((int) mouse_x - 4, (int) mouse_y - 4, 8, 8);
 
 		g.setColor(Color.RED);
-		g.drawLine((int) p.centerx(), (int) p.centery(), (int) (Math.cos(p.angle) * 10 + p.centerx()),
-				(int) (Math.sin(p.angle) * 10 + p.centery()));
-		g.fillRect((int) (Math.cos(p.angle) * 50 + p.centerx() - 4), (int) (Math.sin(p.angle) * 50 + p.centery() - 4),
+		g.drawLine((int) p.centerx(), (int) p.centery(), (int) (Math.cos(p.look_angle) * 10 + p.centerx()),
+				(int) (Math.sin(p.look_angle) * 10 + p.centery()));
+		g.fillRect((int) (Math.cos(p.look_angle) * 50 + p.centerx() - 4),
+				(int) (Math.sin(p.look_angle) * 50 + p.centery() - 4),
 				8, 8);
 
 		for (Bullet b : bullets) {
@@ -165,7 +175,7 @@ public class Application extends JFrame {
 
 		p.paint(g);
 
-		for(Zombie z : zombies){
+		for (Zombie z : zombies) {
 			z.paint(g);
 		}
 		drawGUI(g);
@@ -225,14 +235,87 @@ public class Application extends JFrame {
 		final double COLLISION_BUFFER = 4;
 		CollisionReturn ret = new CollisionReturn();
 
-		double cx = Math.cos(a.angle) * a.magnitude;
-		double cy = Math.sin(a.angle) * a.magnitude;
+		double dx = Math.cos(a.angle) * a.magnitude;
+		double dy = Math.sin(a.angle) * a.magnitude;
 
-		Point[] points = RotatePoints(a.angle, b.getObjectPoints());
-		for (Point p : points) {
-			// System.out.println(String.format("%.1f %.1f", p.x, p.y));
+		System.out.println(String.format("dx=%.2f  dy=%.2f", dx, dy));
+
+		int intent_x = dx > 0.01 ? 1 : dx < -0.01 ? -1 : 0;
+		int intent_y = dy > 0.01 ? 1 : dy < -0.01 ? -1 : 0;
+
+		if (intent_x == 1 && intent_y == 1) {// quadrant I
+
+		} else if (intent_x == 0 && intent_y == 1) {// y axis up
+			Point top_left = new Point(a.left(), a.top());
+			Point top_right = new Point(a.right(), a.top());
+
+			Point object_bottom_left = new Point(b.left(), b.bottom());
+			Point object_bottom_right = new Point(b.right(), b.bottom());
+
+			boolean left_intersect = top_right.x>object_bottom_left.x&&top_left.x<object_bottom_left.x;
+			boolean right_intersect = top_left.x<object_bottom_right.x&&top_right.x>object_bottom_right.x;
+			boolean inline_y = left_intersect || right_intersect;
+			// check if object is valid before move
+			if (inline_y && a.top()<=b.bottom()&&a.top()+dy>b.bottom()) {
+				ret.valid_change_y = true;
+				ret.change_y = Math.ceil(b.bottom() - a.top());
+				return ret;
+			}
+		} else if (intent_x == -1 && intent_y == 1) {// quadrant II
+
+		} else if (intent_x == -1 && intent_y == 0) {// x axis left
+			Point top_left = new Point(a.right(), a.top());
+			Point bottom_left = new Point(a.right(), a.bottom());
+
+			Point object_top_right = new Point(b.left(), b.top());
+			Point object_bottom_right = new Point(b.left(), b.bottom());
+
+			boolean top_intersect = bottom_left.y > object_top_right.y && top_left.y < object_top_right.y;
+			boolean bottom_intersect = top_left.y < object_bottom_right.y && bottom_left.y > object_bottom_right.y;
+			boolean inline_x = top_intersect || bottom_intersect;
+			// check if object is valid before move
+			if (inline_x && a.left()>=b.right() && a.left()+dx<b.right()) {
+				ret.valid_change_x = true;
+				ret.change_x = Math.ceil(b.right() - a.left());
+				return ret;
+			}
+		} else if (intent_x == -1 && intent_y == -1) {// quadrant III
+
+		} else if (intent_x == 0 && intent_y == -1) {// y axis down
+			Point bottom_left = new Point(a.left(), a.bottom());
+			Point bottom_right = new Point(a.right(), a.bottom());
+
+			Point object_top_left = new Point(b.left(), b.top());
+			Point object_top_right = new Point(b.right(), b.top());
+
+			boolean left_intersect = bottom_right.x>object_top_left.x&&bottom_left.x<object_top_left.x;
+			boolean right_intersect = bottom_left.x<object_top_right.x&&bottom_right.x>object_top_right.x;
+			boolean inline_y = left_intersect || right_intersect;
+			// check if object is valid before move
+			if (inline_y && a.bottom()<=b.top()&&a.bottom()-dy>b.top()) {
+				ret.valid_change_y = true;
+				ret.change_y = Math.floor(a.bottom() - b.top());
+				return ret;
+			}
+		} else if (intent_x == 1 && intent_y == -1) {// quadrant IV
+
+		} else if (intent_x == 1 && intent_y == 0) {// x axis right
+			Point top_right = new Point(a.right(), a.top());
+			Point bottom_right = new Point(a.right(), a.bottom());
+
+			Point object_top_left = new Point(b.left(), b.top());
+			Point object_bottom_left = new Point(b.left(), b.bottom());
+
+			boolean top_intersect = bottom_right.y > object_top_left.y && top_right.y < object_top_left.y;
+			boolean bottom_intersect = top_right.y < object_bottom_left.y && bottom_right.y > object_bottom_left.y;
+			boolean inline_x = top_intersect || bottom_intersect;
+			// check if object is valid before move
+			if (inline_x && a.right() <= b.left() && a.right() + dx > b.left()) {
+				ret.valid_change_x = true;
+				ret.change_x = Math.floor(b.left() - a.right());
+				return ret;
+			}
 		}
-
 		// boolean inline_x = (a.bottom()+cy+COLLISION_BUFFER > b.top()
 		// && a.top()+cy+COLLISION_BUFFER < b.top())
 		// || (a.top()+cy-COLLISION_BUFFER < b.bottom()
@@ -269,9 +352,12 @@ public class Application extends JFrame {
 		// a.y = b.bottom();
 		// }
 		// }
-		ret.colliding = ret.top != -1 || ret.left != -1 || ret.bottom != -1 || ret.right != -1;
 		return ret;
 	}
+
+	public double displacement_x = 0;
+	public double displacement_y = 0;
+	
 
 	boolean DynamicDynamicCollision(DynamicGameObject a, DynamicGameObject b) {
 		return false;
@@ -300,15 +386,23 @@ public class Application extends JFrame {
 		if (PERI.keyPressed('s'))
 			intent_y--;
 
-		double displacement_x = 0;
-		double displacement_y = 0;
 		if (intent_x != 0 || intent_y != 0) {
 			float sprint = PERI.keyPressed(KeyEvent.VK_SHIFT) && p.sprint > 20 ? p.SPRINT_MULT : 1;
 			double intent_direction = Math.atan2(intent_y, intent_x);
-			displacement_x = Math.cos(intent_direction) * p.speed() * sprint;
-			displacement_y = Math.sin(intent_direction) * p.speed() * sprint;
+			p.angle = intent_direction;
 
+			displacement_x = Math.cos(intent_direction) * p.BASE_SPEED * sprint;
+			displacement_y = Math.sin(intent_direction) * p.BASE_SPEED * sprint;
+			p.magnitude = p.BASE_SPEED * sprint;
+
+		}else{
+			displacement_x = 0;
+			displacement_y=0;
 		}
+		if (Math.sqrt(Math.pow(mouse_y - p.centery(), 2) + Math.pow(mouse_x - p.centerx(), 2)) > p.width / 2) {
+			p.look_angle = Math.atan2((mouse_y - p.centery()), (mouse_x - p.centerx()));
+		}
+
 		if (PERI.keyPressed(KeyEvent.VK_SHIFT)) {
 			if (p.sprint > 0)
 				p.sprint -= p.SPRINT_DRAIN;
@@ -325,11 +419,11 @@ public class Application extends JFrame {
 
 		if (mouse_clicked) {
 			mouse_clicked = false;
-			System.out.println("clicked");
+			//System.out.println("clicked");
 			Bullet b = new Bullet();
-			b.x = p.centerx() + Math.cos(p.angle) * p.width / 2;
-			b.y = p.centery() + Math.sin(p.angle) * p.width / 2;
-			b.angle = p.angle;
+			b.x = p.centerx() + Math.cos(p.look_angle) * p.width / 2;
+			b.y = p.centery() + Math.sin(p.look_angle) * p.width / 2;
+			b.angle = p.look_angle;
 			bullets.add(b);
 
 		}
@@ -412,7 +506,7 @@ public class Application extends JFrame {
 			b.x += Math.cos(b.angle) * b.magnitude;
 			b.y += Math.sin(b.angle) * b.magnitude;
 			bullets.set(i, b);
-			if (b.x < 0 || b.x > CANW || b.y < 0 || b.y > CANH) {
+			if (b.x + b.width < 0 || b.x > CANW || b.y + b.height < 0 || b.y > CANH) {
 				bullets.remove(i);
 				System.out.println(String.format("Removed bullet (%d)", i));
 				i--;
@@ -420,8 +514,6 @@ public class Application extends JFrame {
 			}
 		}
 
-		final double dis_x = displacement_x;
-		final double dis_y = displacement_y;
 		int returns_[] = new TileAction() {
 			@Override
 			public int action(float x, float y, double dx, double dy, int ix, int iy,
@@ -433,24 +525,20 @@ public class Application extends JFrame {
 				if (px >= 0 && px < LEVEL_W && py >= 0 && py < LEVEL_H) {
 					if (level[px][py] != null) {
 						Tile tile = level[px][py];
-						TileObject obj = tile.tree;
 
-						GameObject obj2 = new GameObject() {
-							@Override
-							public void paint(Graphics2D g) {
+						for (TileObject o : tile.tileObjects) {
+							GameObject o1 = o.toGameObject(dx, dy, tilesize);
+							CollisionReturn ret = staticDynamicCollision(p, o1);
+							System.out.println(String.format("[x=%d,y=%d] %.2f %.2f",
+									ret.valid_change_x ? 1 : 0, ret.valid_change_y ? 1 : 0, ret.change_x,
+									ret.change_y));
+							if (ret.valid_change_x) {
+								displacement_x = ret.change_x;
+								retx = 1;
 							}
-						};
-						obj2.x = dx + obj.lx * tilesize;
-						obj2.y = dy + obj.ly * tilesize;
-						obj2.width = obj.lwidth * tilesize;
-						obj2.height = obj.lheight * tilesize;
-
-						for (int i = 0; i < bullets.size(); i++) {
-							Bullet b_ = bullets.get(i);
-							CollisionReturn ret = staticDynamicCollision(b_, obj2);
-							if (ret.colliding) {
-								b_.magnitude = 0;
-								bullets.set(i, b_);
+							if (ret.valid_change_y) {
+								displacement_y = ret.change_y;
+								rety = 1;
 							}
 						}
 						// player collision
@@ -603,6 +691,8 @@ public class Application extends JFrame {
 		AMGR.addAsset("stone", ImageUtil.ImageFile("assets/stone.jpeg"));
 		AMGR.addAsset("wood", ImageUtil.ImageFile("assets/wood.jpeg"));
 		AMGR.addAsset("tree", ImageUtil.ImageFile("assets/tree.png"));
+		AMGR.addAsset("fern", ImageUtil.ImageFile("assets/fern.png"));
+		AMGR.addAsset("weeds", ImageUtil.ImageFile("assets/weeds.png"));
 	}
 
 	public void addEventHooks() {
@@ -612,7 +702,6 @@ public class Application extends JFrame {
 			public void action(double x, double y) {
 				mouse_x = x;
 				mouse_y = y;
-				p.angle = Math.atan2((y - p.centery()), (x - p.centerx()));
 			}
 
 		});
@@ -647,17 +736,72 @@ public class Application extends JFrame {
 			for (int x = 0; x < LEVEL_W; x++) {
 				Tile t = new Tile();
 				t.floor = AMGR.assetID("grass");
-				if (Math.random() > 0.9f)
-					t.showtree = true;
-				else
-					t.showtree = false;
+				if (Math.random() > 0.95f) {// TREE
+					double minsize = 0.4;
+					double size = minsize + Math.random() * 0.4;
+					double x_ = Math.random() * (1 - size);
+					double y_ = Math.random() * (1 - size);
+					TileObject tree = new TileObject(x_, y_, size, size, AMGR.assetID("tree")) {
+
+						@Override
+						public void paint(Graphics2D g, double dx, double dy, double gridsize) {
+							g.drawImage(AMGR.getAsset(asset).src, (int) (dx + lx * gridsize),
+									(int) (dy + ly * gridsize), (int) (lwidth * gridsize), (int) (lheight * gridsize),
+									null);
+						}
+
+					};
+					t.addTileObject(tree);
+				} // GRASS
+				else if (Math.random() > 0.95f) {
+					double minsize = 0.3;
+					double size = minsize + Math.random() * 0.5;
+					double x_ = Math.random() * (1 - size);
+					double y_ = Math.random() * (1 - size);
+					TileObject tree = new TileObject(x_, y_, size, size, AMGR.assetID("fern")) {
+
+						@Override
+						public void paint(Graphics2D g, double dx, double dy, double gridsize) {
+							Asset a = AMGR.getAsset(asset);
+							g.drawImage(a.src, (int) (dx + lx * gridsize), (int) (dy + ly * gridsize),
+									(int) (lwidth * gridsize), (int) (a.scaledHeight(lwidth * gridsize)), null);
+						}
+
+					};
+					t.addTileObject(tree);
+				} else if (Math.random() > 0.9f) {
+					double minsize = 0.2;
+					double size = minsize + Math.random() * 0.35;
+					double x_ = Math.random() * (1 - size);
+					double y_ = Math.random() * (1 - size);
+					TileObject tree = new TileObject(x_, y_, size, size, AMGR.assetID("weeds")) {
+
+						@Override
+						public void paint(Graphics2D g, double dx, double dy, double gridsize) {
+							Asset a = AMGR.getAsset(asset);
+							g.drawImage(a.src, (int) (dx + lx * gridsize), (int) (dy + ly * gridsize),
+									(int) (lwidth * gridsize), (int) (a.scaledHeight(lwidth * gridsize)), null);
+						}
+
+					};
+					t.addTileObject(tree);
+				}
 				level[x][y] = t;
 			}
 		}
+		// flooring example
+		Tile t = new Tile();
+		t.floor = AMGR.assetID("wood");
+		level[4][4] = t;
+		level[4][5] = t;
+		level[5][4] = t;
+		level[5][5] = t;
+		level[6][4] = t;
+		level[6][5] = t;
 	}
 
-	void InitializeEnemies(){
-		for(int i = 0;i<1;i++){
+	void InitializeEnemies() {
+		for (int i = 0; i < 1; i++) {
 			Zombie z = new Zombie();
 			zombies.add(z);
 		}
@@ -682,8 +826,22 @@ public class Application extends JFrame {
 
 		ImportAssets();
 
-		InitializeLevel();
-		InitializeEnemies();
+		TileObject obj = new TileObject(0, 0, 1, 1, AMGR.assetID("tree")) {
+
+			@Override
+			public void paint(Graphics2D g, double dx, double dy, double gridsize) {
+				g.drawImage(AMGR.getAsset(asset).src, (int) (dx + lx * gridsize), (int) (dy + ly * gridsize),
+						(int) (lwidth * gridsize), (int) (lheight * gridsize), null);
+			}
+
+		};
+		Tile t = new Tile();
+		t.floor = AMGR.assetID("grass");
+		t.addTileObject(obj);
+		level[9][9] = t;
+
+		// InitializeLevel();
+		// InitializeEnemies();
 
 		addEventHooks();
 
@@ -710,40 +868,31 @@ public class Application extends JFrame {
 
 class Tile {
 	Tile() {
-		defineTree();
+
 	}
 
 	Tile(AssetManager amgr, String floorname) {
 		floor = amgr.assetID(floorname);
-		defineTree();
-	}
-
-	void defineTree() {
-		tree = new TileObject() {
-
-			@Override
-			public void paint(Graphics2D g, double dx, double dy, double gridsize) {
-				g.drawImage(Application.AMGR.getAsset(asset).src, (int) (lx * gridsize + dx),
-						(int) (ly * gridsize + dy), (int) (lwidth * gridsize), (int) (lheight * gridsize), null);
-			}
-
-		};
-		tree.lwidth = 0.6;
-		tree.lheight = 0.6;
-		tree.lx = 0.2;
-		tree.ly = 0.2;
-		tree.asset = Application.AMGR.assetID("tree");
 	}
 
 	int floor = -1;
-	public boolean showtree;
-	TileObject tree;
+	List<TileObject> tileObjects = new ArrayList<TileObject>();
+
+	public void addTileObject(TileObject tile) {
+		tileObjects.add(tile);
+	}
+
+	public void DrawTileObjects(Graphics2D g, double dx, double dy, double tilesize) {
+		for (TileObject o : tileObjects) {
+			o.paint(g, dx, dy, tilesize);
+		}
+	}
 }
 
 class CollisionReturn {
-	public double left = -1;
-	public double right = -1;
-	public double bottom = -1;
-	public double top = -1;
 	public boolean colliding;
+	public double change_x;
+	public boolean valid_change_x;
+	public double change_y;
+	public boolean valid_change_y;
 }

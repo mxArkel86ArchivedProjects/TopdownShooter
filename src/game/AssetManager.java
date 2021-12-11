@@ -45,4 +45,8 @@ public class AssetManager {
 class Asset{
 	String name;
     BufferedImage src;
+    public double scaledHeight(double displaywidth){
+        double displayheight = (src.getHeight()*1.0/src.getWidth())*displaywidth;
+        return displayheight;
+    }
 }

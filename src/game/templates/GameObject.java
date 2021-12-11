@@ -4,10 +4,6 @@ import java.awt.Graphics2D;
 
 public abstract class GameObject extends Rect {
     public int asset;
-    public double localwidth;
-    public double localheight;
-    public double localx;
-    public double localy;
 
     public double left(){
         return x;
