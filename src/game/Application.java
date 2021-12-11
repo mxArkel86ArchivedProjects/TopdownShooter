@@ -232,19 +232,48 @@ public class Application extends JFrame {
 	}
 
 	CollisionReturn staticDynamicCollision(DynamicGameObject a, GameObject b) {
-		final double COLLISION_BUFFER = 4;
+		final double BUFFER = 4;
 		CollisionReturn ret = new CollisionReturn();
 
 		double dx = Math.cos(a.angle) * a.magnitude;
 		double dy = Math.sin(a.angle) * a.magnitude;
 
-		System.out.println(String.format("dx=%.2f  dy=%.2f", dx, dy));
+		//System.out.println(String.format("dx=%.2f  dy=%.2f", dx, dy));
 
 		int intent_x = dx > 0.01 ? 1 : dx < -0.01 ? -1 : 0;
 		int intent_y = dy > 0.01 ? 1 : dy < -0.01 ? -1 : 0;
 
 		if (intent_x == 1 && intent_y == 1) {// quadrant I
+			Point top_left = new Point(a.left(), a.top());
+			Point top_right = new Point(a.right(), a.top());
+			Point bottom_right = new Point(a.right(), a.bottom());
 
+			Point object_bottom_left = new Point(b.left(), b.bottom());
+			Point object_bottom_right = new Point(b.right(), b.bottom());
+			Point object_top_left = new Point(b.left(), b.top());
+
+			boolean left_intersect = top_right.x>=object_bottom_left.x&&top_left.x<object_bottom_left.x;
+			boolean right_intersect = top_left.x<=object_bottom_right.x&&top_right.x>object_bottom_right.x;
+			boolean center_intersect_x= top_left.x>=object_bottom_left.x && top_right.x<object_bottom_right.x;
+
+			boolean top_intersect = bottom_right.y >= object_top_left.y && top_left.y < object_top_left.y;
+			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_right.y > object_bottom_right.y;
+			boolean center_intersect_y= bottom_right.y<object_bottom_right.y&&top_left.y>object_top_left.y;
+
+			System.out.println(String.format("l=%b r=%b t=%b b=%b", left_intersect, right_intersect, top_intersect, bottom_intersect));
+			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
+			boolean inline_x = top_intersect || bottom_intersect||center_intersect_y;
+			// check if object is valid before move
+			if (inline_y && a.top()<=b.bottom()&&a.top()+dy>b.bottom()) {
+				ret.valid_change_y = true;
+				ret.change_y = Math.ceil(-b.bottom() - a.top());
+				return ret;
+			}
+			if (inline_x && a.right() <= b.left() && a.right() + dx > b.left()) {
+				ret.valid_change_x = true;
+				ret.change_x = Math.floor(b.left() - a.right());
+				return ret;
+			}
 		} else if (intent_x == 0 && intent_y == 1) {// y axis up
 			Point top_left = new Point(a.left(), a.top());
 			Point top_right = new Point(a.right(), a.top());
@@ -252,9 +281,11 @@ public class Application extends JFrame {
 			Point object_bottom_left = new Point(b.left(), b.bottom());
 			Point object_bottom_right = new Point(b.right(), b.bottom());
 
-			boolean left_intersect = top_right.x>object_bottom_left.x&&top_left.x<object_bottom_left.x;
-			boolean right_intersect = top_left.x<object_bottom_right.x&&top_right.x>object_bottom_right.x;
-			boolean inline_y = left_intersect || right_intersect;
+			boolean left_intersect = top_right.x>=object_bottom_left.x&&top_left.x<object_bottom_left.x;
+			boolean right_intersect = top_left.x<=object_bottom_right.x&&top_right.x>object_bottom_right.x;
+			boolean center_intersect_x= top_left.x>=object_bottom_left.x && top_right.x<object_bottom_right.x;
+			
+			boolean inline_y = left_intersect || right_intersect||center_intersect_x;
 			// check if object is valid before move
 			if (inline_y && a.top()<=b.bottom()&&a.top()+dy>b.bottom()) {
 				ret.valid_change_y = true;
@@ -270,9 +301,11 @@ public class Application extends JFrame {
 			Point object_top_right = new Point(b.left(), b.top());
 			Point object_bottom_right = new Point(b.left(), b.bottom());
 
-			boolean top_intersect = bottom_left.y > object_top_right.y && top_left.y < object_top_right.y;
-			boolean bottom_intersect = top_left.y < object_bottom_right.y && bottom_left.y > object_bottom_right.y;
-			boolean inline_x = top_intersect || bottom_intersect;
+			boolean top_intersect = bottom_left.y >= object_top_right.y && top_left.y < object_top_right.y;
+			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_left.y > object_bottom_right.y;
+			boolean center_intersect_y= bottom_left.y<=object_bottom_right.y&&top_left.y>object_top_right.y;
+			
+			boolean inline_x = top_intersect || bottom_intersect||center_intersect_y;
 			// check if object is valid before move
 			if (inline_x && a.left()>=b.right() && a.left()+dx<b.right()) {
 				ret.valid_change_x = true;
@@ -288,9 +321,11 @@ public class Application extends JFrame {
 			Point object_top_left = new Point(b.left(), b.top());
 			Point object_top_right = new Point(b.right(), b.top());
 
-			boolean left_intersect = bottom_right.x>object_top_left.x&&bottom_left.x<object_top_left.x;
-			boolean right_intersect = bottom_left.x<object_top_right.x&&bottom_right.x>object_top_right.x;
-			boolean inline_y = left_intersect || right_intersect;
+			boolean left_intersect = bottom_right.x>=object_top_left.x&&bottom_left.x<object_top_left.x;
+			boolean right_intersect = bottom_left.x<=object_top_right.x&&bottom_right.x>object_top_right.x;
+			boolean center_intersect_x= bottom_left.x>=object_top_left.x && bottom_right.x<object_top_right.x;
+
+			boolean inline_y = left_intersect || right_intersect||center_intersect_x;
 			// check if object is valid before move
 			if (inline_y && a.bottom()<=b.top()&&a.bottom()-dy>b.top()) {
 				ret.valid_change_y = true;
@@ -306,9 +341,11 @@ public class Application extends JFrame {
 			Point object_top_left = new Point(b.left(), b.top());
 			Point object_bottom_left = new Point(b.left(), b.bottom());
 
-			boolean top_intersect = bottom_right.y > object_top_left.y && top_right.y < object_top_left.y;
-			boolean bottom_intersect = top_right.y < object_bottom_left.y && bottom_right.y > object_bottom_left.y;
-			boolean inline_x = top_intersect || bottom_intersect;
+			boolean top_intersect = bottom_right.y >= object_top_left.y && top_right.y < object_top_left.y;
+			boolean bottom_intersect = top_right.y <= object_bottom_left.y && bottom_right.y > object_bottom_left.y;
+			boolean center_intersect_y= bottom_right.y<=object_bottom_left.y&&top_right.y>object_top_left.y;
+
+			boolean inline_x = top_intersect || bottom_intersect||center_intersect_y;
 			// check if object is valid before move
 			if (inline_x && a.right() <= b.left() && a.right() + dx > b.left()) {
 				ret.valid_change_x = true;
@@ -529,9 +566,9 @@ public class Application extends JFrame {
 						for (TileObject o : tile.tileObjects) {
 							GameObject o1 = o.toGameObject(dx, dy, tilesize);
 							CollisionReturn ret = staticDynamicCollision(p, o1);
-							System.out.println(String.format("[x=%d,y=%d] %.2f %.2f",
-									ret.valid_change_x ? 1 : 0, ret.valid_change_y ? 1 : 0, ret.change_x,
-									ret.change_y));
+							// System.out.println(String.format("[x=%d,y=%d] %.2f %.2f",
+							// 		ret.valid_change_x ? 1 : 0, ret.valid_change_y ? 1 : 0, ret.change_x,
+							// 		ret.change_y));
 							if (ret.valid_change_x) {
 								displacement_x = ret.change_x;
 								retx = 1;
@@ -641,7 +678,7 @@ public class Application extends JFrame {
 				p.y -= displacement_y;
 				break;
 			case 1:
-				p.y += displacement_y;
+				p.y -= displacement_y;
 				break;
 			case 2:
 				p.x -= displacement_x;
