@@ -6,13 +6,16 @@ import java.util.Map;
 
 import javax.swing.event.MouseInputListener;
 
+import util.KeyPressEvent;
 import util.MouseEvent;
 import util.ScrollEvent;
-
+import util.TypeEvent;
 
 public class Peripherals implements KeyListener, MouseInputListener, MouseWheelListener {
     public Map<Integer, Boolean> keyboard = new HashMap<Integer, Boolean>();
     Map<Integer, ScrollEvent> scroll_hook = new HashMap<Integer, ScrollEvent>();
+    Map<Integer, TypeEvent> keytype_hook = new HashMap<Integer, TypeEvent>();
+    Map<Integer, KeyPressEvent> keypress_hook = new HashMap<Integer, KeyPressEvent>();
     Map<Integer, MouseEvent> mousemove_hook = new HashMap<Integer, MouseEvent>();
     Map<Integer, MouseEvent> mouseclick_hook = new HashMap<Integer, MouseEvent>();
 
@@ -42,6 +45,34 @@ public class Peripherals implements KeyListener, MouseInputListener, MouseWheelL
     public void removeScrollHook(int i){
         scroll_hook.remove(i);
     }
+    public int addTypeHook(TypeEvent e){
+        int i;
+        for(i = 0;i<100;i++){
+            if(keytype_hook.get(i)==null)
+                break;
+        }
+        keytype_hook.put(i, e);
+        return i;
+    }
+
+    public void removeTypeHook(int i){
+        keytype_hook.remove(i);
+    }
+
+    public int addKeyPressHook(KeyPressEvent e){
+        int i;
+        for(i = 0;i<100;i++){
+            if(keypress_hook.get(i)==null)
+                break;
+        }
+        keypress_hook.put(i, e);
+        return i;
+    }
+
+    public void removeKeyPressHook(int i){
+        keypress_hook.remove(i);
+    }
+
     public int addMouseMoveHook(MouseEvent e){
         int i;
         for(i = 0;i<100;i++){
@@ -71,19 +102,31 @@ public class Peripherals implements KeyListener, MouseInputListener, MouseWheelL
 
     @Override
     public void keyTyped(KeyEvent e) {
-        
+        char c =e.getKeyChar();
+        e.consume();
+        for(TypeEvent ev : keytype_hook.values()){
+            ev.action(c, e.getKeyCode());
+        }
     }
 
     @Override
     public void keyPressed(KeyEvent e) {
         int c =e.getKeyCode();
+        char c_ = e.getKeyChar();
         keyboard.put(c, true);
+        for(KeyPressEvent ev : keypress_hook.values()){
+            ev.action(c_, c, true);
+        }
     }
 
     @Override
     public void keyReleased(KeyEvent e) {
         int c =e.getKeyCode();
+        char c_ = e.getKeyChar();
         keyboard.put(c, false);
+        for(KeyPressEvent ev : keypress_hook.values()){
+            ev.action(c_, c, true);
+        }
     }
 
     @Override

@@ -4,29 +4,24 @@ import java.awt.Color;
 import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 
-public class Player extends DynamicGameObject {
+public class Player extends Entity {
 
     public Player(){
         x = 300;
         y = 400;
-        width=34;
-        height=34;
-        magnitude = 0.8;
+        width=30;
+        height=30;
+        health=MAX_HEALTH();
+        stamina=MAX_STAMINA();
     }
 
     final Color PLAYER_COLOR = Color.ORANGE;
-    public final double WALL_FRICTION_CONST = 0.8;
+    public final double WALL_FRICTION_CONST = 0.6;
     final int ENTITY_BORDER_WEIGHT = 4;
-    public final float SPRINT_MULT = 2f;
-    public final double BASE_SPEED = 1;
     final double HAND_DISTANCE = 25;
-    public final double SPRINT_DRAIN = 0.2;
-    public final double SPRINT_REGEN = 0.1;
     public final int SPRINT_REGEN_DELAY = 120;
     public int regen_delay_time; 
     final double HAND_SIZE = 10;
-    public double health = 100;
-    public double sprint = 100;
     public double look_angle =0;
     
     void drawCircle(Graphics2D g, double x, double y, double w, double h, Color c, double weight){
@@ -55,5 +50,21 @@ public class Player extends DynamicGameObject {
 
     public double speed(){
         return magnitude;
+    }
+    @Override
+    public double MAX_HEALTH() {
+        return 100;
+    }
+    @Override
+    public double MAX_STAMINA() {
+        return 100;
+    }
+    @Override
+    public double BASE_SPEED() {
+        return 1.0;
+    }
+    @Override
+    public double SPRINT_SPEED_MULT() {
+        return 1.4;
     }
 }

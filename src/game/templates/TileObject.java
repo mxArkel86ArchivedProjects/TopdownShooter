@@ -3,18 +3,20 @@ package game.templates;
 import java.awt.Graphics2D;
 
 public abstract class TileObject {
-    public TileObject(double lx, double ly, double lwidth, double lheight, int asset){
+    public TileObject(double lx, double ly, double lwidth, double lheight, int asset, boolean collider){
         this.lx = lx;
         this.ly = ly;
         this.lwidth = lwidth;
         this.lheight = lheight;
         this.asset = asset;
+        this.collider = collider;
     }
     public double lx;
     public double ly;
     public double lwidth;
     public double lheight;
     public int asset;
+    public boolean collider;
 
     public GameObject toGameObject(double dx, double dy, double tilesize){
         GameObject obj = new GameObject() {

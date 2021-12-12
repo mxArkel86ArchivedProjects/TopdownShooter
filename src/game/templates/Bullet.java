@@ -7,7 +7,8 @@ public class Bullet extends DynamicGameObject {
     public Bullet(){
         width = 16;
         height = 16;
-        magnitude = 2.0;
+        magnitude = 10.0;
+        damage = 20;
     }
     
     public double damage;

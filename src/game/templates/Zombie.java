@@ -4,21 +4,20 @@ import java.awt.Color;
 import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 
-public class Zombie extends DynamicGameObject {
+public class Zombie extends Entity {
     public Zombie(){
         x = 420;
         y = 400;
         width=24;
         height=24;
-        magnitude = 0.8;
+        magnitude = BASE_SPEED();
+        health=MAX_HEALTH();
     }
 
     final Color PLAYER_COLOR = new Color(70,186,56);
     final int ENTITY_BORDER_WEIGHT = 4;
-    public final float SPRINT_MULT = 2f;
     final double HAND_DISTANCE = 25;
     final double HAND_SIZE = 10;
-    public double health = 100;
     
     void drawCircle(Graphics2D g, double x, double y, double w, double h, Color c, double weight){
         g.setColor(c);
@@ -47,5 +46,21 @@ public class Zombie extends DynamicGameObject {
         g.fillRect((int)centerx()-30, (int)y-20, 60, 10);
         g.setColor(Color.RED);
         g.fillRect((int)centerx()-27, (int)y-17, 54, 4);
+    }
+    @Override
+    public double MAX_HEALTH() {
+        return 60;
+    }
+    @Override
+    public double MAX_STAMINA() {
+        return 140;
+    }
+    @Override
+    public double BASE_SPEED() {
+        return 0.8;
+    }
+    @Override
+    public double SPRINT_SPEED_MULT() {
+        return 1.8;
     }
 }
