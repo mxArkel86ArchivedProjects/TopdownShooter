@@ -260,19 +260,18 @@ public class Application extends JFrame {
 			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_right.y > object_bottom_right.y;
 			boolean center_intersect_y= bottom_right.y<object_bottom_right.y&&top_left.y>object_top_left.y;
 
-			System.out.println(String.format("l=%b r=%b t=%b b=%b", left_intersect, right_intersect, top_intersect, bottom_intersect));
+			//System.out.println(String.format("l=%b r=%b t=%b b=%b", left_intersect, right_intersect, top_intersect, bottom_intersect));
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			boolean inline_x = top_intersect || bottom_intersect||center_intersect_y;
 			// check if object is valid before move
 			if (inline_y && a.top()<=b.bottom()&&a.top()+dy>b.bottom()) {
 				ret.valid_change_y = true;
-				ret.change_y = Math.ceil(-b.bottom() - a.top());
+				ret.change_y = Math.ceil(a.top()-b.bottom());
 				return ret;
-			}
+			}else
 			if (inline_x && a.right() <= b.left() && a.right() + dx > b.left()) {
 				ret.valid_change_x = true;
-				ret.change_x = Math.floor(b.left() - a.right());
-				return ret;
+				ret.change_x = Math.floor(b.left()-a.right());
 			}
 		} else if (intent_x == 0 && intent_y == 1) {// y axis up
 			Point top_left = new Point(a.left(), a.top());
@@ -289,11 +288,37 @@ public class Application extends JFrame {
 			// check if object is valid before move
 			if (inline_y && a.top()<=b.bottom()&&a.top()+dy>b.bottom()) {
 				ret.valid_change_y = true;
-				ret.change_y = Math.ceil(b.bottom() - a.top());
-				return ret;
+				ret.change_y = Math.ceil(a.top()-b.bottom());
 			}
 		} else if (intent_x == -1 && intent_y == 1) {// quadrant II
+			Point top_left = new Point(a.left(), a.top());
+			Point top_right = new Point(a.right(), a.top());
+			Point bottom_left = new Point(a.right(), a.bottom());
 
+			Point object_bottom_left = new Point(b.left(), b.bottom());
+			Point object_bottom_right = new Point(b.right(), b.bottom());
+			Point object_top_right = new Point(b.right(), b.top());
+
+			boolean left_intersect = top_right.x>=object_bottom_left.x&&top_left.x<object_bottom_left.x;
+			boolean right_intersect = top_left.x<=object_bottom_right.x&&top_right.x>object_bottom_right.x;
+			boolean center_intersect_x= top_left.x>=object_bottom_left.x && top_right.x<object_bottom_right.x;
+
+			boolean top_intersect = bottom_left.y >= object_top_right.y && top_left.y < object_top_right.y;
+			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_left.y > object_bottom_right.y;
+			boolean center_intersect_y= bottom_left.y<object_bottom_right.y&&top_left.y>object_top_right.y;
+
+			//System.out.println(String.format("l=%b r=%b t=%b b=%b", left_intersect, right_intersect, top_intersect, bottom_intersect));
+			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
+			boolean inline_x = top_intersect || bottom_intersect||center_intersect_y;
+			// check if object is valid before move
+			if (inline_y && a.top()<=b.bottom()&&a.top()+dy>b.bottom()) {
+				ret.valid_change_y = true;
+				ret.change_y = Math.ceil(a.top()-b.bottom());
+			}else
+			if (inline_x && a.left() >= b.right() && a.left() + dx < b.right()) {
+				ret.valid_change_x = true;
+				ret.change_x = Math.floor(a.left()-b.right());
+			}
 		} else if (intent_x == -1 && intent_y == 0) {// x axis left
 			Point top_left = new Point(a.right(), a.top());
 			Point bottom_left = new Point(a.right(), a.bottom());
@@ -309,11 +334,38 @@ public class Application extends JFrame {
 			// check if object is valid before move
 			if (inline_x && a.left()>=b.right() && a.left()+dx<b.right()) {
 				ret.valid_change_x = true;
-				ret.change_x = Math.ceil(b.right() - a.left());
-				return ret;
+				ret.change_x = Math.ceil(b.right()-a.left());
 			}
 		} else if (intent_x == -1 && intent_y == -1) {// quadrant III
+			Point top_left = new Point(a.left(), a.top());
+			Point bottom_right = new Point(a.right(), a.bottom());
+			Point bottom_left = new Point(a.left(), a.bottom());
 
+			Point object_top_left = new Point(b.left(), b.top());
+			Point object_top_right = new Point(b.right(), b.top());
+			Point object_bottom_right = new Point(b.right(), b.bottom());
+
+			boolean left_intersect = bottom_right.x>=object_top_left.x&&top_left.x<object_top_left.x;
+			boolean right_intersect = top_left.x<=object_bottom_right.x&&bottom_right.x>object_bottom_right.x;
+			boolean center_intersect_x= top_left.x>=object_top_left.x && bottom_right.x<object_bottom_right.x;
+
+			boolean top_intersect = bottom_left.y >= object_top_right.y && top_left.y < object_top_right.y;
+			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_left.y > object_bottom_right.y;
+			boolean center_intersect_y= bottom_left.y<object_bottom_right.y&&top_left.y>object_top_right.y;
+
+			//System.out.println(String.format("l=%b r=%b t=%b b=%b", left_intersect, right_intersect, top_intersect, bottom_intersect));
+			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
+			boolean inline_x = top_intersect || bottom_intersect||center_intersect_y;
+			System.out.println(String.format("[III] l=%b r=%b c=%b", left_intersect, right_intersect, center_intersect_x));
+			// check if object is valid before move
+			if (inline_y && a.bottom()<=b.top()&&a.bottom()-dy>b.top()) {
+				ret.valid_change_y = true;
+				ret.change_y = Math.ceil(a.bottom()-b.top());
+			}else
+			if (inline_x && a.left() >= b.right() && a.left() + dx < b.right()) {
+				ret.valid_change_x = true;
+				ret.change_x = Math.floor(a.left()-b.right());
+			}
 		} else if (intent_x == 0 && intent_y == -1) {// y axis down
 			Point bottom_left = new Point(a.left(), a.bottom());
 			Point bottom_right = new Point(a.right(), a.bottom());
@@ -323,16 +375,43 @@ public class Application extends JFrame {
 
 			boolean left_intersect = bottom_right.x>=object_top_left.x&&bottom_left.x<object_top_left.x;
 			boolean right_intersect = bottom_left.x<=object_top_right.x&&bottom_right.x>object_top_right.x;
-			boolean center_intersect_x= bottom_left.x>=object_top_left.x && bottom_right.x<object_top_right.x;
+			boolean center_intersect_x= bottom_left.x>=object_top_left.x && bottom_right.x<=object_top_right.x;
 
 			boolean inline_y = left_intersect || right_intersect||center_intersect_x;
 			// check if object is valid before move
 			if (inline_y && a.bottom()<=b.top()&&a.bottom()-dy>b.top()) {
 				ret.valid_change_y = true;
-				ret.change_y = Math.floor(a.bottom() - b.top());
-				return ret;
+				ret.change_y = Math.floor(b.top()-a.bottom());
 			}
 		} else if (intent_x == 1 && intent_y == -1) {// quadrant IV
+			Point top_right = new Point(a.right(), a.top());
+			Point bottom_right = new Point(a.right(), a.bottom());
+			Point bottom_left = new Point(a.left(), a.bottom());
+
+			Point object_top_left = new Point(b.left(), b.top());
+			Point object_top_right = new Point(b.right(), b.top());
+			Point object_bottom_left = new Point(b.left(), b.bottom());
+
+			boolean left_intersect = bottom_right.x>=object_top_left.x&&bottom_left.x<object_top_left.x;
+			boolean right_intersect = bottom_left.x<=object_top_right.x&&bottom_right.x>object_top_right.x;
+			boolean center_intersect_x= bottom_left.x>=object_top_left.x && bottom_right.x<object_top_right.x;
+
+			boolean top_intersect = bottom_left.y >= object_top_right.y && top_right.y < object_top_right.y;
+			boolean bottom_intersect = top_right.y <= object_bottom_left.y && bottom_left.y > object_bottom_left.y;
+			boolean center_intersect_y= bottom_left.y<object_bottom_left.y&&top_right.y>object_top_right.y;
+
+			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
+			boolean inline_x = top_intersect || bottom_intersect||center_intersect_y;
+			System.out.println(String.format("[IV] l=%b r=%b c=%b", left_intersect, right_intersect, center_intersect_x));
+			// check if object is valid before move
+			if (inline_y && a.bottom()<=b.top()&&a.bottom()-dy>b.top()) {
+				ret.valid_change_y = true;
+				ret.change_y = Math.ceil(a.bottom()-b.top());
+			}else
+			if (inline_x && a.right()<=b.left()&&a.right()+dx>b.left()) {
+				ret.valid_change_x = true;
+				ret.change_x = Math.floor(b.left()-a.right());
+			}
 
 		} else if (intent_x == 1 && intent_y == 0) {// x axis right
 			Point top_right = new Point(a.right(), a.top());
@@ -350,45 +429,8 @@ public class Application extends JFrame {
 			if (inline_x && a.right() <= b.left() && a.right() + dx > b.left()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(b.left() - a.right());
-				return ret;
 			}
 		}
-		// boolean inline_x = (a.bottom()+cy+COLLISION_BUFFER > b.top()
-		// && a.top()+cy+COLLISION_BUFFER < b.top())
-		// || (a.top()+cy-COLLISION_BUFFER < b.bottom()
-		// && a.bottom()+cy+COLLISION_BUFFER > b.bottom());
-		// boolean inline_y = (a.right()+cx+COLLISION_BUFFER > b.left()
-		// && a.left()+cx-COLLISION_BUFFER < b.left())
-		// || (a.left()+cx-COLLISION_BUFFER < b.right()
-		// && a.right()+cx+COLLISION_BUFFER > b.right());
-
-		// if (inline_x && Math.abs(Math.sin(a.angle))>0.1) {// may be colliding
-		// horizontally
-		// if (a.left()+cx-COLLISION_BUFFER < b.right() && a.right()+cx+COLLISION_BUFFER
-		// > b.right()) {// left into right side
-		// ret.left = a.left() - b.right();
-		// a.x = b.right();
-		// }
-		// if (a.right()+cx +COLLISION_BUFFER> b.left() && a.left()+cx-COLLISION_BUFFER
-		// < b.left()) {// right into left side
-		// ret.right = b.right() - a.left();
-		// a.x = b.left() - a.width;
-		// }
-
-		// }
-
-		// if (inline_y) {// may be colliding vertically
-		// if (a.bottom()+cx+COLLISION_BUFFER > b.top() && a.top()+cx-COLLISION_BUFFER <
-		// b.top()) {// bottom into top side
-		// ret.top = b.top() - a.bottom();
-		// a.y = b.top() - a.height;
-		// }
-		// if (a.top()+cx-COLLISION_BUFFER< b.bottom() && a.bottom()+cx+COLLISION_BUFFER
-		// > b.bottom()) {// top into bottom side
-		// ret.bottom = a.top() - b.bottom();
-		// a.y = b.bottom();
-		// }
-		// }
 		return ret;
 	}
 
@@ -458,8 +500,8 @@ public class Application extends JFrame {
 			mouse_clicked = false;
 			//System.out.println("clicked");
 			Bullet b = new Bullet();
-			b.x = p.centerx() + Math.cos(p.look_angle) * p.width / 2;
-			b.y = p.centery() + Math.sin(p.look_angle) * p.width / 2;
+			b.x = p.centerx() + Math.cos(p.look_angle) * p.width / 2-b.width/2;
+			b.y = p.centery() + Math.sin(p.look_angle) * p.width / 2-b.height/2;
 			b.angle = p.look_angle;
 			bullets.add(b);
 
@@ -538,19 +580,6 @@ public class Application extends JFrame {
 				animating_screen = false;
 		}
 
-		for (int i = 0; i < bullets.size(); i++) {
-			Bullet b = bullets.get(i);
-			b.x += Math.cos(b.angle) * b.magnitude;
-			b.y += Math.sin(b.angle) * b.magnitude;
-			bullets.set(i, b);
-			if (b.x + b.width < 0 || b.x > CANW || b.y + b.height < 0 || b.y > CANH) {
-				bullets.remove(i);
-				System.out.println(String.format("Removed bullet (%d)", i));
-				i--;
-
-			}
-		}
-
 		int returns_[] = new TileAction() {
 			@Override
 			public int action(float x, float y, double dx, double dy, int ix, int iy,
@@ -566,9 +595,6 @@ public class Application extends JFrame {
 						for (TileObject o : tile.tileObjects) {
 							GameObject o1 = o.toGameObject(dx, dy, tilesize);
 							CollisionReturn ret = staticDynamicCollision(p, o1);
-							// System.out.println(String.format("[x=%d,y=%d] %.2f %.2f",
-							// 		ret.valid_change_x ? 1 : 0, ret.valid_change_y ? 1 : 0, ret.change_x,
-							// 		ret.change_y));
 							if (ret.valid_change_x) {
 								displacement_x = ret.change_x;
 								retx = 1;
@@ -577,88 +603,14 @@ public class Application extends JFrame {
 								displacement_y = ret.change_y;
 								rety = 1;
 							}
-						}
-						// player collision
-						{/*
-							 * int intent_x = (int) (Math.round(dis_x / movement_base_speed)) == 0 ? 0
-							 * : dis_x > 0 ? 1 : -1;
-							 * int intent_y = (int) (Math.round(dis_y / movement_base_speed)) == 0 ? 0
-							 * : dis_y > 0 ? 1 : -1;
-							 * 
-							 * boolean inline_x1 = (player_y + PLAYER_SIZE / 2 > ot - OUTER_COLLISION_BUFFER
-							 * && player_y - PLAYER_SIZE / 2 < ot + OUTER_COLLISION_BUFFER)
-							 * || (player_y - PLAYER_SIZE / 2 < ob + OUTER_COLLISION_BUFFER
-							 * && player_y + PLAYER_SIZE > ob - OUTER_COLLISION_BUFFER);
-							 * boolean inline_y1 = (player_x + PLAYER_SIZE / 2 > ol - OUTER_COLLISION_BUFFER
-							 * && player_x - PLAYER_SIZE / 2 < ol + OUTER_COLLISION_BUFFER)
-							 * || (player_x - PLAYER_SIZE / 2 < or + OUTER_COLLISION_BUFFER
-							 * && player_x + PLAYER_SIZE > or - OUTER_COLLISION_BUFFER);
-							 * 
-							 * boolean inline_x = (player_y + PLAYER_SIZE / 2 > ot && player_y - PLAYER_SIZE
-							 * / 2 < ot)
-							 * || (player_y - PLAYER_SIZE / 2 < ob && player_y + PLAYER_SIZE > ob);
-							 * boolean inline_y = (player_x + PLAYER_SIZE / 2 > ol && player_x - PLAYER_SIZE
-							 * / 2 < ol)
-							 * || (player_x - PLAYER_SIZE / 2 < or && player_x + PLAYER_SIZE > or);
-							 * 
-							 * if (Math.sqrt(Math.pow(player_x - ol + obj.width / 2 * tilesize, 2)
-							 * + Math.pow(player_y - ot + obj.height / 2 * tilesize, 2)) < (obj.height +
-							 * obj.width)
-							 * / 4 * tilesize + OUTER_COLLISION_BUFFER) {
-							 * // System.out.println("something");
-							 * }
-							 * 
-							 * if (intent_x == 1 && inline_x1 && player_x + PLAYER_SIZE / 2 > ol -
-							 * OUTER_COLLISION_BUFFER
-							 * && player_x - PLAYER_SIZE / 2 < ol - OUTER_COLLISION_BUFFER) {
-							 * retx = 1;
-							 * }
-							 * if (intent_x == -1 && inline_x1 && player_x - PLAYER_SIZE / 2 < or +
-							 * OUTER_COLLISION_BUFFER
-							 * && player_x + PLAYER_SIZE / 2 > or - OUTER_COLLISION_BUFFER) {
-							 * retx = 1;
-							 * }
-							 * if (intent_y == -1 && inline_y1 && player_y + PLAYER_SIZE / 2 > ot -
-							 * OUTER_COLLISION_BUFFER
-							 * && player_y - PLAYER_SIZE / 2 < ot + OUTER_COLLISION_BUFFER) {
-							 * rety = 1;
-							 * }
-							 * if (intent_y == 1 && inline_y1 && player_y - PLAYER_SIZE / 2 < ob +
-							 * OUTER_COLLISION_BUFFER
-							 * && player_y + PLAYER_SIZE / 2 > ob - OUTER_COLLISION_BUFFER) {
-							 * rety = 1;
-							 * }
-							 * System.out.println(
-							 * String.format("x=%b y=%b x=%d y=%d rx=%.1f ry=%.1f retx=%d rety=%d",
-							 * inline_x,
-							 * inline_y,
-							 * intent_x, intent_y, dis_x, dis_y, retx, rety));
-							 * 
-							 * if (intent_x == 1 && inline_x && player_x + dis_x + PLAYER_SIZE / 2 > ol
-							 * && player_x + dis_x - PLAYER_SIZE / 2 < ol) {
-							 * player_x = ol - PLAYER_SIZE / 2 - COLLISION_BUFFER;
-							 * retx = 1;
-							 * }
-							 * if (intent_x == -1 && inline_x && player_x + dis_x - PLAYER_SIZE / 2 < or
-							 * && player_x + dis_x + PLAYER_SIZE / 2 > or) {
-							 * player_x = or + PLAYER_SIZE / 2 + COLLISION_BUFFER;
-							 * retx = 1;
-							 * }
-							 * if (intent_y == -1 && inline_y && player_y + dis_y + PLAYER_SIZE / 2 > ot
-							 * && player_y + dis_y - PLAYER_SIZE / 2 < ot) {
-							 * player_y = ot - PLAYER_SIZE / 2 + COLLISION_BUFFER;
-							 * rety = 1;
-							 * }
-							 * if (intent_y == 1 && inline_y && player_y + dis_y - PLAYER_SIZE / 2 < ob
-							 * && player_y + dis_y + PLAYER_SIZE / 2 > ob) {
-							 * player_y = ob - PLAYER_SIZE / 2 + COLLISION_BUFFER;
-							 * rety = 1;
-							 * }
-							 * }
-							 */
-
-							// System.out.println(String.format("p=(%.1f,%.1f) ol=%.1f %or=%.1f", player_x,
-							// player_y, ol, or));
+							for (int i = 0; i < bullets.size(); i++) {
+								Bullet b = bullets.get(i);
+								CollisionReturn ret2 = staticDynamicCollision(b, o1);
+								if(ret2.colliding()){
+									bullets.remove(b);
+									i--;
+								}
+							}
 						}
 					}
 				}
@@ -679,12 +631,24 @@ public class Application extends JFrame {
 				break;
 			case 1:
 				p.y -= displacement_y;
+				p.x+=displacement_x*p.WALL_FRICTION_CONST;
 				break;
 			case 2:
-				p.x -= displacement_x;
+				p.x += displacement_x;
+				p.y-=displacement_y*p.WALL_FRICTION_CONST;
 				break;
 			case 3:
 				break;
+		}
+		for (int i = 0; i < bullets.size(); i++) {
+			Bullet b = bullets.get(i);
+			b.x += Math.cos(b.angle) * b.magnitude;
+			b.y += Math.sin(b.angle) * b.magnitude;
+			bullets.set(i, b);
+			if (b.x + b.width < 0 || b.x > CANW || b.y + b.height < 0 || b.y > CANH) {
+				bullets.remove(i);
+				i--;
+			}
 		}
 	}
 
@@ -876,6 +840,9 @@ public class Application extends JFrame {
 		t.floor = AMGR.assetID("grass");
 		t.addTileObject(obj);
 		level[9][9] = t;
+		level[11][9] = t;
+		level[9][10] = t;
+		level[11][10] = t;
 
 		// InitializeLevel();
 		// InitializeEnemies();
@@ -927,7 +894,9 @@ class Tile {
 }
 
 class CollisionReturn {
-	public boolean colliding;
+	public boolean colliding(){
+		return valid_change_x||valid_change_y;
+	};
 	public double change_x;
 	public boolean valid_change_x;
 	public double change_y;

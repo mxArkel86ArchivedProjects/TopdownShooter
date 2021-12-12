@@ -5,6 +5,7 @@ import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 
 public class Player extends DynamicGameObject {
+
     public Player(){
         x = 300;
         y = 400;
@@ -14,6 +15,7 @@ public class Player extends DynamicGameObject {
     }
 
     final Color PLAYER_COLOR = Color.ORANGE;
+    public final double WALL_FRICTION_CONST = 0.8;
     final int ENTITY_BORDER_WEIGHT = 4;
     public final float SPRINT_MULT = 2f;
     public final double BASE_SPEED = 1;
