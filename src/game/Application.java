@@ -49,7 +49,7 @@ public class Application extends JFrame {
 	GraphicsEnvironment env = GraphicsEnvironment.getLocalGraphicsEnvironment();
 	GraphicsDevice device = env.getDefaultScreenDevice();
 	GraphicsConfiguration config = device.getDefaultConfiguration();
-	Font def_font = new Font("Arial", Font.PLAIN, 24);
+	Font def_font = new Font("Arial", Font.PLAIN, 18);
 	Font console_font = new Font("Arial", Font.PLAIN, 16);
 
 	// Application Semi-Constants
@@ -153,8 +153,8 @@ public class Application extends JFrame {
 				}
 
 				g.setStroke(new BasicStroke(1));
-				g.setColor(Color.BLACK);
-				g.drawRect((int) dx, (int) dy, (int) tilesize, (int) tilesize);
+				//g.setColor(Color.BLACK);
+				//g.drawRect((int) dx, (int) dy, (int) tilesize, (int) tilesize);
 				return 0;
 			}
 		}.run(ROWS, COLUMNS, camera_x, camera_y, tilesize);
@@ -172,8 +172,8 @@ public class Application extends JFrame {
 
 		for (Bullet b : bullets) {
 			b.paint(g);
-			g.setColor(Color.RED);
-			g.drawRect((int) b.x, (int) b.y, (int) b.width, (int) b.height);
+			//g.setColor(Color.RED);
+			//g.drawRect((int) b.x, (int) b.y, (int) b.width, (int) b.height);
 		}
 
 		g.setColor(new Color(255, 0, 0, 40));
@@ -295,19 +295,21 @@ public class Application extends JFrame {
 			boolean left_intersect = top_right.x >= object_bottom_left.x && top_left.x < object_bottom_left.x;
 			boolean right_intersect = top_left.x <= object_bottom_right.x && top_right.x > object_bottom_right.x;
 			boolean center_intersect_x = top_left.x >= object_bottom_left.x && top_right.x <= object_bottom_right.x;
+			boolean pass_by_x = top_right.x <= object_bottom_left.x && top_left.x+dx >= object_bottom_right.x;
 
 			boolean top_intersect = bottom_right.y >= object_top_left.y && top_left.y < object_top_left.y;
 			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_right.y > object_bottom_right.y;
 			boolean center_intersect_y = bottom_right.y <= object_bottom_right.y && top_left.y >= object_top_left.y;
+			boolean pass_by_y = bottom_right.y <= object_top_left.y && top_left.y-dy >= object_bottom_right.y;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if (inline_y && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
+			if ((inline_y||pass_by_x) && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.ceil(a.top() - b.bottom());
 				return ret;
-			} else if (inline_x && a.right() <= b.left() && a.right() + dx > b.left()) {
+			} else if ((inline_x||pass_by_y) && a.right() <= b.left() && a.right() + dx > b.left()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(b.left() - a.right());
 			}
@@ -321,10 +323,11 @@ public class Application extends JFrame {
 			boolean left_intersect = top_right.x >= object_bottom_left.x && top_left.x < object_bottom_left.x;
 			boolean right_intersect = top_left.x <= object_bottom_right.x && top_right.x > object_bottom_right.x;
 			boolean center_intersect_x = top_left.x >= object_bottom_left.x && top_right.x <= object_bottom_right.x;
+			boolean pass_by_x = top_right.x <= object_bottom_left.x && top_left.x+dx >= object_bottom_right.x;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			// check if object is valid before move
-			if (inline_y && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
+			if ((inline_y||pass_by_x) && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.ceil(a.top() - b.bottom());
 			}
@@ -340,18 +343,20 @@ public class Application extends JFrame {
 			boolean left_intersect = top_right.x >= object_bottom_left.x && top_left.x < object_bottom_left.x;
 			boolean right_intersect = top_left.x <= object_bottom_right.x && top_right.x > object_bottom_right.x;
 			boolean center_intersect_x = top_left.x >= object_bottom_left.x && top_right.x <= object_bottom_right.x;
+			boolean pass_by_x = top_right.x <= object_bottom_left.x && top_left.x+dx >= object_bottom_right.x;
 
 			boolean top_intersect = bottom_left.y >= object_top_right.y && top_left.y < object_top_right.y;
 			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_left.y > object_bottom_right.y;
 			boolean center_intersect_y = bottom_left.y <= object_bottom_right.y && top_left.y >= object_top_right.y;
+			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_left.y-dy >= object_bottom_right.y;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if (inline_y && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
+			if ((inline_y||pass_by_x) && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.ceil(a.top() - b.bottom());
-			} else if (inline_x && a.left() >= b.right() && a.left() + dx < b.right()) {
+			} else if ((inline_x||pass_by_y) && a.left() >= b.right() && a.left() + dx < b.right()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(a.left() - b.right());
 			}
@@ -365,10 +370,11 @@ public class Application extends JFrame {
 			boolean top_intersect = bottom_left.y >= object_top_right.y && top_left.y < object_top_right.y;
 			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_left.y > object_bottom_right.y;
 			boolean center_intersect_y = bottom_left.y <= object_bottom_right.y && top_left.y >= object_top_right.y;
+			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_left.y-dy >= object_bottom_right.y;
 
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if (inline_x && a.left() >= b.right() && a.left() + dx < b.right()) {
+			if ((inline_x||pass_by_y) && a.left() >= b.right() && a.left() + dx < b.right()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.ceil(b.right() - a.left());
 			}
@@ -384,18 +390,20 @@ public class Application extends JFrame {
 			boolean left_intersect = bottom_right.x >= object_top_left.x && top_left.x < object_top_left.x;
 			boolean right_intersect = top_left.x <= object_bottom_right.x && bottom_right.x > object_bottom_right.x;
 			boolean center_intersect_x = top_left.x >= object_top_left.x && bottom_right.x < object_bottom_right.x;
+			boolean pass_by_x = bottom_right.x <= object_top_left.x && top_left.x+dx >= object_bottom_right.x;
 
 			boolean top_intersect = bottom_left.y >= object_top_right.y && top_left.y < object_top_right.y;
 			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_left.y > object_bottom_right.y;
 			boolean center_intersect_y = bottom_left.y <= object_bottom_right.y && top_left.y >= object_top_right.y;
+			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_left.y-dy >= object_bottom_right.y;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if (inline_y && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
+			if ((inline_y||pass_by_x) && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.ceil(a.bottom() - b.top());
-			} else if (inline_x && a.left() >= b.right() && a.left() + dx < b.right()) {
+			} else if ((inline_x||pass_by_y) && a.left() >= b.right() && a.left() + dx < b.right()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(a.left() - b.right());
 			}
@@ -409,10 +417,11 @@ public class Application extends JFrame {
 			boolean left_intersect = bottom_right.x >= object_top_left.x && bottom_left.x < object_top_left.x;
 			boolean right_intersect = bottom_left.x <= object_top_right.x && bottom_right.x > object_top_right.x;
 			boolean center_intersect_x = bottom_left.x >= object_top_left.x && bottom_right.x <= object_top_right.x;
+			boolean pass_by_x = bottom_right.x <= object_top_left.x && bottom_left.x+dx >= object_top_right.x;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			// check if object is valid before move
-			if (inline_y && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
+			if ((inline_y||pass_by_x) && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.floor(b.top() - a.bottom());
 			}
@@ -428,18 +437,20 @@ public class Application extends JFrame {
 			boolean left_intersect = bottom_right.x >= object_top_left.x && bottom_left.x < object_top_left.x;
 			boolean right_intersect = bottom_left.x <= object_top_right.x && bottom_right.x > object_top_right.x;
 			boolean center_intersect_x = bottom_left.x >= object_top_left.x && bottom_right.x <= object_top_right.x;
+			boolean pass_by_x = bottom_right.x <= object_top_left.x && bottom_left.x+dx >= object_top_right.x;
 
 			boolean top_intersect = bottom_left.y >= object_top_right.y && top_right.y < object_top_right.y;
 			boolean bottom_intersect = top_right.y <= object_bottom_left.y && bottom_left.y > object_bottom_left.y;
 			boolean center_intersect_y = bottom_left.y <= object_bottom_left.y && top_right.y >= object_top_right.y;
+			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_right.y-dy >= object_bottom_left.y;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if (inline_y && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
+			if ((inline_y||pass_by_x) && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.ceil(a.bottom() - b.top());
-			} else if (inline_x && a.right() <= b.left() && a.right() + dx > b.left()) {
+			} else if ((inline_x||pass_by_y) && a.right() <= b.left() && a.right() + dx > b.left()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(b.left() - a.right());
 			}
@@ -454,10 +465,11 @@ public class Application extends JFrame {
 			boolean top_intersect = bottom_right.y >= object_top_left.y && top_right.y < object_top_left.y;
 			boolean bottom_intersect = top_right.y <= object_bottom_left.y && bottom_right.y > object_bottom_left.y;
 			boolean center_intersect_y = bottom_right.y <= object_bottom_left.y && top_right.y >= object_top_left.y;
+			boolean pass_by_y = bottom_right.y <= object_top_left.y && top_right.y-dy >= object_bottom_left.y;
 
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if (inline_x && a.right() <= b.left() && a.right() + dx > b.left()) {
+			if ((inline_x||pass_by_y) && a.right() <= b.left() && a.right() + dx > b.left()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(b.left() - a.right());
 			}
@@ -487,7 +499,6 @@ public class Application extends JFrame {
 		if (!console_toggle && PERI.keyPressed(KeyEvent.VK_MINUS)) {
 			console_toggle = true;
 			console_up = !console_up;
-			System.out.println("toggled");
 			current_command = "";
 		}
 		if (!PERI.keyPressed(KeyEvent.VK_MINUS)) {
@@ -520,7 +531,7 @@ public class Application extends JFrame {
 			displacement_x = 0;
 			displacement_y = 0;
 		}
-		System.out.println(String.format("x=%d y=%d", (int)((camera_x+p.x+p.width/2)/tilesize), (int)((camera_y+p.y+p.height/2)/tilesize)));
+		//System.out.println(String.format("x=%d y=%d", (int)((camera_x+p.x+p.width/2)/tilesize), (int)((camera_y+p.y+p.height/2)/tilesize)));
 		if (Math.sqrt(Math.pow(mouse_y - p.centery(), 2) + Math.pow(mouse_x - p.centerx(), 2)) > p.width / 2) {
 			p.look_angle = Math.atan2((mouse_y - p.centery()), (mouse_x - p.centerx()));
 		}
@@ -544,7 +555,7 @@ public class Application extends JFrame {
 			Bullet b = new Bullet();
 			b.x = p.centerx() + Math.cos(p.look_angle) * p.width / 2 - b.width / 2;
 			b.y = p.centery() + Math.sin(p.look_angle) * p.width / 2 - b.height / 2;
-			b.angle = p.look_angle;
+			b.angle = -p.look_angle;
 			bullets.add(b);
 
 		}
@@ -690,7 +701,7 @@ public class Application extends JFrame {
 		for (int i = 0; i < bullets.size(); i++) {
 			Bullet b = bullets.get(i);
 			b.x += Math.cos(b.angle) * b.magnitude;
-			b.y += Math.sin(b.angle) * b.magnitude;
+			b.y -= Math.sin(b.angle) * b.magnitude;
 			bullets.set(i, b);
 			if (b.x + b.width < 0 || b.x > CANW || b.y + b.height < 0 || b.y > CANH) {
 				bullets.remove(i);

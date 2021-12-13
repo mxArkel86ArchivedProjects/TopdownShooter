@@ -5,8 +5,8 @@ import java.awt.Graphics2D;
 
 public class Bullet extends DynamicGameObject {
     public Bullet(){
-        width = 16;
-        height = 16;
+        width = 12;
+        height = 12;
         magnitude = 10.0;
         damage = 20;
     }
