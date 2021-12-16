@@ -4,9 +4,10 @@ import java.awt.Color;
 import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 
-public class Player extends Entity {
+public class Player extends Humanoid {
 
     public Player(){
+        super(14);
         x = 300;
         y = 400;
         width=30;

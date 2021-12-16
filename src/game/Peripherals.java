@@ -12,6 +12,8 @@ import util.ScrollEvent;
 import util.TypeEvent;
 
 public class Peripherals implements KeyListener, MouseInputListener, MouseWheelListener {
+    public static Peripherals PERI = new Peripherals();
+
     public Map<Integer, Boolean> keyboard = new HashMap<Integer, Boolean>();
     Map<Integer, ScrollEvent> scroll_hook = new HashMap<Integer, ScrollEvent>();
     Map<Integer, TypeEvent> keytype_hook = new HashMap<Integer, TypeEvent>();

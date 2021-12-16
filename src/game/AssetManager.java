@@ -7,6 +7,8 @@ import java.util.Map;
 import java.awt.image.BufferedImage;
 
 public class AssetManager {
+    public static AssetManager AMGR = new AssetManager();
+
     Map<String, Integer> assetIdentifier = new HashMap<String, Integer>();
     List<Asset> assets = new ArrayList<Asset>();
     public int addAsset(String name, BufferedImage src){

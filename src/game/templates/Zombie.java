@@ -4,8 +4,9 @@ import java.awt.Color;
 import java.awt.BasicStroke;
 import java.awt.Graphics2D;
 
-public class Zombie extends Entity {
+public class Zombie extends Humanoid {
     public Zombie(){
+        super(4);
         x = 420;
         y = 400;
         width=24;

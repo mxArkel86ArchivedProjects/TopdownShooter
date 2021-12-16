@@ -30,8 +30,11 @@ import java.awt.Font;
 import game.templates.Bullet;
 import game.templates.DynamicGameObject;
 import game.templates.GameObject;
+import game.templates.Item;
+import game.templates.ItemManager;
 import game.templates.Player;
 import game.templates.Point;
+import game.templates.Stack;
 import game.templates.TileObject;
 import game.templates.Zombie;
 import util.ImageUtil;
@@ -55,8 +58,6 @@ public class Application extends JFrame {
 	// Application Semi-Constants
 	int CANW = 1280;
 	int CANH = 720;
-	static Peripherals PERI;
-	static AssetManager AMGR;
 	Player p;
 	List<Zombie> zombies = new ArrayList<Zombie>();
 
@@ -141,7 +142,7 @@ public class Application extends JFrame {
 						g.fillRect((int) dx, (int) dy, (int) (tilesize + TILE_BUFFER), (int) (tilesize + TILE_BUFFER));
 					} else {
 
-						g.drawImage(AMGR.getAsset(level[px][py].floor).src, (int) dx, (int) dy,
+						g.drawImage(AssetManager.AMGR.getAsset(level[px][py].floor).src, (int) dx, (int) dy,
 								(int) tilesize + TILE_BUFFER, (int) tilesize + TILE_BUFFER,
 								new Color(0, 0, 0, 0), null);
 
@@ -198,6 +199,7 @@ public class Application extends JFrame {
 		for (Zombie z : zombies) {
 			z.paint(g);
 		}
+		drawInventory(g);
 		drawGUI(g);
 	}
 
@@ -232,6 +234,22 @@ public class Application extends JFrame {
 			}
 			g.setColor(Color.WHITE);
 			g.drawString(current_command, 20, CANH - 80);
+		}
+	}
+
+	void drawInventory(Graphics2D g){
+		g.setColor(new Color(200,200,200,180));
+		g.fillRect(50, 50, CANW-100, CANH-100);
+
+		g.setColor(Color.BLACK);
+		for(int i =0;i<p.inventory.stacks_max;i++){
+			Stack stack = p.inventory.stacks[i];
+			String msg = "";
+			if(stack==null)
+				msg = "null";
+			else
+				msg = String.format("%s (%d)", stack.getItem().name, stack.count);
+			g.drawString(msg, 60, 60+g.getFontMetrics().getAscent()*(i+1));
 		}
 	}
 
@@ -496,12 +514,12 @@ public class Application extends JFrame {
 		int ROWS = (int) ((int) Math.ceil(CANH / TILEBASESIZE) / zoom_mult) + 2;
 		double tilesize = TILEBASESIZE * zoom_mult;
 
-		if (!console_toggle && PERI.keyPressed(KeyEvent.VK_MINUS)) {
+		if (!console_toggle && Peripherals.PERI.keyPressed(KeyEvent.VK_MINUS)) {
 			console_toggle = true;
 			console_up = !console_up;
 			current_command = "";
 		}
-		if (!PERI.keyPressed(KeyEvent.VK_MINUS)) {
+		if (!Peripherals.PERI.keyPressed(KeyEvent.VK_MINUS)) {
 			console_toggle = false;
 		}
 		if (console_up)
@@ -509,17 +527,17 @@ public class Application extends JFrame {
 
 		int intent_x = 0;
 		int intent_y = 0;
-		if (PERI.keyPressed('a'))
+		if (Peripherals.PERI.keyPressed('a'))
 			intent_x--;
-		if (PERI.keyPressed('d'))
+		if (Peripherals.PERI.keyPressed('d'))
 			intent_x++;
-		if (PERI.keyPressed('w'))
+		if (Peripherals.PERI.keyPressed('w'))
 			intent_y++;
-		if (PERI.keyPressed('s'))
+		if (Peripherals.PERI.keyPressed('s'))
 			intent_y--;
 
 		if (intent_x != 0 || intent_y != 0) {
-			double sprint = PERI.keyPressed(KeyEvent.VK_SHIFT) && p.stamina > 20 ? p.SPRINT_SPEED_MULT() : 1;
+			double sprint = Peripherals.PERI.keyPressed(KeyEvent.VK_SHIFT) && p.stamina > 20 ? p.SPRINT_SPEED_MULT() : 1;
 			double intent_direction = Math.atan2(intent_y, intent_x);
 			p.angle = intent_direction;
 
@@ -536,7 +554,7 @@ public class Application extends JFrame {
 			p.look_angle = Math.atan2((mouse_y - p.centery()), (mouse_x - p.centerx()));
 		}
 
-		if (PERI.keyPressed(KeyEvent.VK_SHIFT)) {
+		if (Peripherals.PERI.keyPressed(KeyEvent.VK_SHIFT)) {
 			if (p.stamina > 0)
 				p.stamina -= SPRINT_DRAIN;
 			p.regen_delay_time = 0;
@@ -778,7 +796,7 @@ public class Application extends JFrame {
 			if (level[ix][iy] == null)
 				level[ix][iy] = new Tile();
 
-			level[ix][iy].floor = AMGR.assetID(assetname);
+			level[ix][iy].floor = AssetManager.AMGR.assetID(assetname);
 			return "successfully changed tile asset";
 		} else if (current_command.startsWith("wall")) {
 			int ix = -1;
@@ -823,23 +841,37 @@ public class Application extends JFrame {
 
 			level[ix][iy] = null;
 			return "successfully reset tile";
+		}else if (current_command.startsWith("giveitem")) {
+			String itemname;
+			int count;
+			try {
+				itemname = args[1];
+				count = Integer.parseInt(args[2]);
+			} catch (NumberFormatException e) {
+				return "failed to parse arguments";
+			}
+			
+			int ret = p.inventory.addItemsToInv(ItemManager.IMGR.itemID(itemname), count);
+			return String.format("return=%d", ret);
 		}
 		return "null";
 	}
 
 	void ImportAssets() {
-		AMGR.addAsset("debug_grad_floor", ImageUtil.ImageFile("assets/debug_grad.jpeg"));
-		AMGR.addAsset("grass", ImageUtil.ImageFile("assets/grass.jpeg"));
-		AMGR.addAsset("sand", ImageUtil.ImageFile("assets/sand.jpeg"));
-		AMGR.addAsset("stone", ImageUtil.ImageFile("assets/stone.jpeg"));
-		AMGR.addAsset("wood", ImageUtil.ImageFile("assets/wood.jpeg"));
-		AMGR.addAsset("tree", ImageUtil.ImageFile("assets/tree.png"));
-		AMGR.addAsset("fern", ImageUtil.ImageFile("assets/fern.png"));
-		AMGR.addAsset("weeds", ImageUtil.ImageFile("assets/weeds.png"));
+		AssetManager.AMGR.addAsset("debug_grad_floor", ImageUtil.ImageFile("assets/debug_grad.jpeg"));
+		AssetManager.AMGR.addAsset("grass", ImageUtil.ImageFile("assets/grass.jpeg"));
+		AssetManager.AMGR.addAsset("sand", ImageUtil.ImageFile("assets/sand.jpeg"));
+		AssetManager.AMGR.addAsset("stone", ImageUtil.ImageFile("assets/stone.jpeg"));
+		AssetManager.AMGR.addAsset("wood", ImageUtil.ImageFile("assets/wood.jpeg"));
+		AssetManager.AMGR.addAsset("tree", ImageUtil.ImageFile("assets/tree.png"));
+		AssetManager.AMGR.addAsset("fern", ImageUtil.ImageFile("assets/fern.png"));
+		AssetManager.AMGR.addAsset("weeds", ImageUtil.ImageFile("assets/weeds.png"));
+
+		ItemManager.IMGR.addAsset("stone", -1, 16);
 	}
 
 	public void addEventHooks() {
-		PERI.addMouseMoveHook(new MouseEvent() {
+		Peripherals.PERI.addMouseMoveHook(new MouseEvent() {
 
 			@Override
 			public void action(double x, double y) {
@@ -849,7 +881,7 @@ public class Application extends JFrame {
 
 		});
 
-		PERI.addMouseClickHook(new MouseEvent() {
+		Peripherals.PERI.addMouseClickHook(new MouseEvent() {
 
 			@Override
 			public void action(double x, double y) {
@@ -859,7 +891,7 @@ public class Application extends JFrame {
 			}
 
 		});
-		PERI.addTypeHook(new TypeEvent() {
+		Peripherals.PERI.addTypeHook(new TypeEvent() {
 
 			@Override
 			public void action(char c, int keycode) {
@@ -869,7 +901,7 @@ public class Application extends JFrame {
 			}
 
 		});
-		PERI.addKeyPressHook(new KeyPressEvent() {
+		Peripherals.PERI.addKeyPressHook(new KeyPressEvent() {
 
 			@Override
 			public void action(char c, int keycode, boolean status) {
@@ -883,7 +915,7 @@ public class Application extends JFrame {
 						console_history.add(new ConsoleLine(0, resp));
 						current_command = "";
 					}
-					if (!PERI.keyPressed(KeyEvent.VK_BACK_SPACE)) {
+					if (!Peripherals.PERI.keyPressed(KeyEvent.VK_BACK_SPACE)) {
 						backspace_toggle = false;
 					}
 				}
@@ -895,11 +927,11 @@ public class Application extends JFrame {
 	TileObject wall;
 
 	void InitializeLevel() {
-		wall = new TileObject(0, 0, 1, 1, AMGR.assetID("stone"), true) {
+		wall = new TileObject(0, 0, 1, 1, AssetManager.AMGR.assetID("stone"), true) {
 
 			@Override
 			public void paint(Graphics2D g, double dx, double dy, double gridsize) {
-				g.drawImage(AMGR.getAsset(asset).src, (int) (dx),
+				g.drawImage(AssetManager.AMGR.getAsset(asset).src, (int) (dx),
 						(int) (dy), (int) (gridsize), (int) (gridsize),
 						null);
 			}
@@ -908,17 +940,17 @@ public class Application extends JFrame {
 		for (int y = 0; y < LEVEL_H; y++) {
 			for (int x = 0; x < LEVEL_W; x++) {
 				Tile t = new Tile();
-				t.floor = AMGR.assetID("grass");
+				t.floor = AssetManager.AMGR.assetID("grass");
 				if (Math.random() > 0.95f) {// TREE
 					double minsize = 0.4;
 					double size = minsize + Math.random() * 0.4;
 					double x_ = Math.random() * (1 - size);
 					double y_ = Math.random() * (1 - size);
-					TileObject tree = new TileObject(x_, y_, size, size, AMGR.assetID("tree"), true) {
+					TileObject tree = new TileObject(x_, y_, size, size, AssetManager.AMGR.assetID("tree"), true) {
 
 						@Override
 						public void paint(Graphics2D g, double dx, double dy, double gridsize) {
-							g.drawImage(AMGR.getAsset(asset).src, (int) (dx + lx * gridsize),
+							g.drawImage(AssetManager.AMGR.getAsset(asset).src, (int) (dx + lx * gridsize),
 									(int) (dy + ly * gridsize), (int) (lwidth * gridsize), (int) (lheight * gridsize),
 									null);
 						}
@@ -931,11 +963,11 @@ public class Application extends JFrame {
 					double size = minsize + Math.random() * 0.5;
 					double x_ = Math.random() * (1 - size);
 					double y_ = Math.random() * (1 - size);
-					TileObject fern = new TileObject(x_, y_, size, size, AMGR.assetID("fern"), false) {
+					TileObject fern = new TileObject(x_, y_, size, size, AssetManager.AMGR.assetID("fern"), false) {
 
 						@Override
 						public void paint(Graphics2D g, double dx, double dy, double gridsize) {
-							Asset a = AMGR.getAsset(asset);
+							Asset a = AssetManager.AMGR.getAsset(asset);
 							g.drawImage(a.src, (int) (dx + lx * gridsize), (int) (dy + ly * gridsize),
 									(int) (lwidth * gridsize), (int) (a.scaledHeight(lwidth * gridsize)), null);
 						}
@@ -947,11 +979,11 @@ public class Application extends JFrame {
 					double size = minsize + Math.random() * 0.35;
 					double x_ = Math.random() * (1 - size);
 					double y_ = Math.random() * (1 - size);
-					TileObject weeds = new TileObject(x_, y_, size, size, AMGR.assetID("weeds"), false) {
+					TileObject weeds = new TileObject(x_, y_, size, size, AssetManager.AMGR.assetID("weeds"), false) {
 
 						@Override
 						public void paint(Graphics2D g, double dx, double dy, double gridsize) {
-							Asset a = AMGR.getAsset(asset);
+							Asset a = AssetManager.AMGR.getAsset(asset);
 							g.drawImage(a.src, (int) (dx + lx * gridsize), (int) (dy + ly * gridsize),
 									(int) (lwidth * gridsize), (int) (a.scaledHeight(lwidth * gridsize)), null);
 						}
@@ -981,12 +1013,10 @@ public class Application extends JFrame {
 		CANW = init_w;
 		CANH = init_h;
 
-		PERI = new Peripherals();
-		AMGR = new AssetManager();
-		this.addKeyListener(PERI);
-		panel.addMouseListener(PERI);
-		panel.addMouseMotionListener(PERI);
-		panel.addMouseWheelListener(PERI);
+		this.addKeyListener(Peripherals.PERI);
+		panel.addMouseListener(Peripherals.PERI);
+		panel.addMouseMotionListener(Peripherals.PERI);
+		panel.addMouseWheelListener(Peripherals.PERI);
 
 		ImportAssets();
 
