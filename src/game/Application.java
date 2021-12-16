@@ -541,6 +541,12 @@ public class Application extends JFrame {
 			current_command = "";
 		}
 
+		if (!Peripherals.PERI.keyPressed(KeyEvent.VK_MINUS)) {
+			console_toggle = false;
+		}
+		if (console_up)
+			return;
+
 		if (Peripherals.PERI.keyPressed(KeyEvent.VK_G)) {
 			if (!inventory_toggle) {
 				inventory_toggle = true;
@@ -549,13 +555,6 @@ public class Application extends JFrame {
 		} else {
 			inventory_toggle = false;
 		}
-
-		if (!Peripherals.PERI.keyPressed(KeyEvent.VK_MINUS)) {
-			console_toggle = false;
-		}
-		if (console_up)
-			return;
-
 		{
 			int intent_x = 0;
 			int intent_y = 0;
@@ -843,7 +842,7 @@ public class Application extends JFrame {
 		if (current_command.equals("clear")) {
 			console_history.clear();
 			return "cleared console successfully";
-		} else if (current_command.startsWith("tile")) {
+		} else if (current_command.startsWith("tile ")) {
 
 			int ix = -1;
 			int iy = -1;
@@ -859,7 +858,7 @@ public class Application extends JFrame {
 			setTile(ix, iy, t);
 
 			return "successfully changed tile asset";
-		} else if (current_command.startsWith("wall")) {
+		} else if (current_command.startsWith("wall ")) {
 
 			int ix = -1;
 			int iy = -1;
@@ -881,7 +880,7 @@ public class Application extends JFrame {
 			level[cx][cy].tiles[tx][ty].addTileObject(wall);
 
 			return "successfully added wall tile object";
-		} else if (current_command.startsWith("cleartile")) {
+		} else if (current_command.startsWith("cleartile ")) {
 			int ix = -1;
 			int iy = -1;
 			try {
@@ -902,7 +901,7 @@ public class Application extends JFrame {
 			level[cx][cy].tiles[tx][ty].tileObjects.clear();
 			return String.format("successfully cleared %d tile objects", count);
 
-		} else if (current_command.startsWith("nulltile")) {
+		} else if (current_command.startsWith("nulltile ")) {
 			int ix = -1;
 			int iy = -1;
 			try {
@@ -916,7 +915,7 @@ public class Application extends JFrame {
 
 			level[ix][iy] = null;
 			return "successfully reset tile";
-		} else if (current_command.startsWith("giveitem")) {
+		} else if (current_command.startsWith("giveitems ")) {
 			String itemname;
 			int count;
 			try {
@@ -927,7 +926,28 @@ public class Application extends JFrame {
 			}
 
 			int ret = p.inventory.addItemsToInv(ItemManager.IMGR.itemID(itemname), count);
-			return String.format("return=%d", ret);
+			if(ret==0)
+			return String.format("gave %d %s to player", count, itemname);
+			else
+			return "failed to give items to player";
+		}if (current_command.equals("sortinv")) {
+			p.inventory.sortItems();
+			return "sorted items";
+		}else if (current_command.startsWith("takeitems ")) {
+			String itemname;
+			int count;
+			try {
+				itemname = args[1];
+				count = Integer.parseInt(args[2]);
+			} catch (NumberFormatException e) {
+				return "failed to parse arguments";
+			}
+
+			int ret = p.inventory.removeItemsFromInv(ItemManager.IMGR.itemID(itemname), count);
+			if(ret==0)
+			return String.format("took away %d %s from player", count, itemname);
+			else
+			return "failed to take items from player";
 		}
 		return "null";
 	}

@@ -1,6 +1,7 @@
 package game.templates;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import game.managers.ItemManager;
@@ -21,13 +22,23 @@ public class Inventory {
     // 0 - no error
     // 1 - full inventory
     public int addItemsToInv(int item, int count) {
-        Stack stack_[] = stacks.clone();
+        Stack stack_[] = new Stack[stacks.length];
+        
+        for (int i = 0;i<stacks.length&&count>0;i++) {
+            if(stacks[i]==null)
+                continue;
+            try {
+                stack_[i] = stacks[i].clone();
+            } catch (CloneNotSupportedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
         for (Stack s : stack_) {
             if(s==null)
                 continue;
             if (s.itemid == item) {
                 count = s.addCount(count);
-                System.out.println(String.format("count=%d", count));
             }
         }
         if (!hasSpace())
@@ -46,6 +57,58 @@ public class Inventory {
         return 0;
     }
 
+    public int removeItemsFromInv(int item, int count){
+        Stack stack_[] = new Stack[stacks.length];
+
+        for (int i = 0;i<stacks.length&&count>0;i++) {
+            if(stacks[i]==null)
+                continue;
+            try {
+                stack_[i] = stacks[i].clone();
+            } catch (CloneNotSupportedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        for (int i =stack_.length-1;i>=0;i--) {
+            if(stack_[i]==null)
+                continue;
+            if (stack_[i].itemid == item) {
+                int ret = stack_[i].removeCount(count);
+                if(ret<0){
+                    count=-ret;
+                    stack_[i] = null;
+                }else if(ret>0){
+                    count = 0;
+                    this.stacks = stack_;
+                    return 0;
+                }else if(ret==0){
+                    stack_[i]= null;
+                    count = 0;
+                    this.stacks = stack_;
+                    return 0;
+                }
+                //System.out.println(String.format("ret=%d",ret));
+            }
+        }
+        return 1;
+    }
+
+    public void sortItems(){
+        for(int r = stacks.length-1;r>=0;r--){
+            if(stacks[r]==null)
+                continue;
+            int l =0;
+            for(l = 0;l<r;l++){
+                if(stacks[l]!=null)
+                    continue;
+                stacks[l] = stacks[r];
+                stacks[r] = null;
+            }
+            if(l==r)
+                break;
+        }
+    }
     // 0 - all items have been stored
     // 1 - some items still remain on hold
     int addItemsNewStacks(Stack stacks_[], int item, int count) {
@@ -76,5 +139,8 @@ public class Inventory {
     }
     boolean hasSpace() {
         return count() < stacks_max;
+    }
+    boolean isEmpty(){
+        return count()==0;
     }
 }

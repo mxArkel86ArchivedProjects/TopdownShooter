@@ -2,7 +2,7 @@ package game.templates;
 
 import game.managers.ItemManager;
 
-public class Stack {
+public class Stack implements Cloneable{
     public int count;
     public int itemid;
 
@@ -12,6 +12,9 @@ public class Stack {
     Stack(int itemid, int count){
         this.itemid = itemid;
         this.count = count;
+    }
+    Stack(){
+
     }
 
     //returns the amount of items that were not able to fit in the stack, 0 if item count valid
@@ -24,5 +27,20 @@ public class Stack {
             return diff;
         }
         return 0;
+    }
+    int removeCount(int x){
+        int diff = count-x;
+        if(diff<0)
+            count = 0;
+        else
+            count = diff;
+        return diff;
+    }
+    @Override
+    protected Stack clone() throws CloneNotSupportedException {
+        Stack st = new Stack();
+        st.count = this.count;
+        st.itemid = this.itemid;
+        return st;
     }
 }
