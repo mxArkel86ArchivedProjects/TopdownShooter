@@ -1,9 +1,11 @@
-package game.templates;
+package game.managers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import game.templates.Item;
 
 public class ItemManager {
     public static ItemManager IMGR = new ItemManager();

@@ -2,6 +2,8 @@ package game.templates;
 
 import java.awt.Graphics2D;
 
+import util.Rect;
+
 public abstract class GameObject extends Rect {
     public int asset;
 

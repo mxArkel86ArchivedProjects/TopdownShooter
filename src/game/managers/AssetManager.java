@@ -1,9 +1,12 @@
-package game;
+package game.managers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import util.Asset;
+
 import java.awt.image.BufferedImage;
 
 public class AssetManager {
@@ -41,14 +44,5 @@ public class AssetManager {
         if(assetIdentifier.get(name)!=null)
             return assetIdentifier.get(name);
         return -1;
-    }
-}
-
-class Asset{
-	String name;
-    BufferedImage src;
-    public double scaledHeight(double displaywidth){
-        double displayheight = (src.getHeight()*1.0/src.getWidth())*displaywidth;
-        return displayheight;
     }
 }

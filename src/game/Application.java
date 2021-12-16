@@ -27,21 +27,26 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import java.awt.Font;
 
+import game.managers.AssetManager;
+import game.managers.ItemManager;
+import game.managers.Peripherals;
 import game.templates.Bullet;
+import game.templates.Chunk;
 import game.templates.DynamicGameObject;
 import game.templates.GameObject;
 import game.templates.Item;
-import game.templates.ItemManager;
 import game.templates.Player;
-import game.templates.Point;
 import game.templates.Stack;
+import game.templates.Tile;
 import game.templates.TileObject;
 import game.templates.Zombie;
+import util.Asset;
 import util.ImageUtil;
 import util.KeyPressEvent;
 import util.MathUtil;
 import util.MouseEvent;
-import util.TileAction;
+import util.Point;
+import util.Rect;
 import util.TypeEvent;
 
 public class Application extends JFrame {
@@ -53,6 +58,7 @@ public class Application extends JFrame {
 	GraphicsDevice device = env.getDefaultScreenDevice();
 	GraphicsConfiguration config = device.getDefaultConfiguration();
 	Font def_font = new Font("Arial", Font.PLAIN, 18);
+	Font small_font = new Font("Arial", Font.PLAIN, 12);
 	Font console_font = new Font("Arial", Font.PLAIN, 16);
 
 	// Application Semi-Constants
@@ -68,11 +74,9 @@ public class Application extends JFrame {
 			// super.paintComponent(g);
 
 			// Custom Screen Options
-			RenderingHints rh = new RenderingHints(RenderingHints.KEY_ANTIALIASING,
-					RenderingHints.VALUE_ANTIALIAS_ON);
+			RenderingHints rh = new RenderingHints(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-			rh.put(RenderingHints.KEY_RENDERING,
-					RenderingHints.VALUE_RENDER_QUALITY);
+			rh.put(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
 			g2d.setRenderingHints(rh);
 
@@ -106,7 +110,9 @@ public class Application extends JFrame {
 	final int LEVEL_H = 50;
 	final double transition_edge = 0.2;
 	final double transition_corner = 0.25;
-	Tile level[][] = new Tile[LEVEL_W][LEVEL_H];
+	Chunk level[][] = new Chunk[LEVEL_W][LEVEL_H];
+	int chunktilesx = 20;
+	int chunktilesy = 16;
 
 	List<Bullet> bullets = new ArrayList<Bullet>();
 
@@ -120,45 +126,78 @@ public class Application extends JFrame {
 
 		g.setFont(def_font);
 
-		int COLUMNS = (int) ((int) Math.ceil(CANW / TILEBASESIZE) / zoom_mult) + 2;
-		int ROWS = (int) ((int) Math.ceil(CANH / TILEBASESIZE) / zoom_mult) + 2;
 		double tilesize = TILEBASESIZE * zoom_mult;
+		Rect view = new Rect(camera_x, camera_y, CANW, CANH);
+		double offsetx = -(view.left() / chunktilesx) % 1;
+		double offsety = -(view.top() / chunktilesy) % 1;
 
-		new TileAction() {
-			@Override
-			public int action(float x, float y, double dx, double dy, int ix, int iy,
-					int px, int py) {
+		for (int chunkx = 0; chunkx < LEVEL_W; chunkx++) {
+			for (int chunky = 0; chunky < LEVEL_H; chunky++) {
+				Rect chunkdrawspace = new Rect(((chunkx + offsetx) * chunktilesx) * tilesize,
+						((chunky + offsety) * chunktilesy) * tilesize, tilesize * chunktilesx, tilesize * chunktilesy);
+				if (!((chunkdrawspace.left() >= view.left() && chunkdrawspace.left() <= view.right())
+						|| (chunkdrawspace.right() >= view.left() && chunkdrawspace.right() <= view.right())
+						|| (chunkdrawspace.left() <= view.left() && chunkdrawspace.right() >= view.right())))
+					continue;
+				if (!((chunkdrawspace.top() >= view.top() && chunkdrawspace.top() <= view.bottom())
+						|| (chunkdrawspace.bottom() >= view.top() && chunkdrawspace.bottom() <= view.bottom())
+						|| (chunkdrawspace.top() <= view.top() && chunkdrawspace.bottom() >= view.bottom())))
+					continue;
+				if (chunkx >= 0 && chunkx < LEVEL_W && chunky >= 0 && chunky < LEVEL_H) {
+					Chunk chunk = level[chunkx][chunky];
+					int cix = (int) (camera_x / chunktilesx) + chunkx;
+					int ciy = (int) (camera_y / chunktilesy) + chunky;
 
-				if (px >= 0 && px < LEVEL_W && py >= 0 && py < LEVEL_H) {
-					Tile tile = level[px][py];
-					if (tile == null) {
+					for (int tx = 0; tx < chunktilesx; tx++) {
+						for (int ty = 0; ty < chunktilesy; ty++) {
+							int tix = (int) (tx + cix * chunktilesx);
+							int tiy = (int) (ty + ciy * chunktilesy);
+							Rect tiledrawspace = new Rect(((chunkx + offsetx) * chunktilesx + tx) * tilesize,
+									((chunky + offsety) * chunktilesy + ty) * tilesize, tilesize, tilesize);
+							if (!(tx >= 0 && tx < chunktilesx && ty >= 0 && ty < chunktilesy))
+								continue;
 
-						// g.drawImage(AMGR.getAsset("debug_grad_floor").src, (int) dx, (int) dy,
-						// (int) tilesize + TILE_BUFFER,
-						// (int) tilesize + TILE_BUFFER,
-						// new Color(0, 0, 0, 0), null);
+							if (chunk == null || chunk.tiles[tx][ty] == null) {
+								/*
+								 * g.drawImage(AssetManager.AMGR.getAsset("grass").src,
+								 * (int) tiledrawspace.left(), (int) tiledrawspace.top(),
+								 * (int) tiledrawspace.width, (int) tiledrawspace.height,
+								 * new Color(0, 0, 0, 0), null);
+								 */
+								g.setColor(Color.GRAY);
+								g.fillRect((int) tiledrawspace.left(), (int) tiledrawspace.top(),
+										(int) tiledrawspace.width, (int) tiledrawspace.height);
+							} else {
+								// Tile t = chunk.tiles[tx][ty];
+								Tile t = getTile(tix, tiy);
+								g.drawImage(AssetManager.AMGR.getAsset(t.floor).src,
+										(int) tiledrawspace.left(), (int) tiledrawspace.top(),
+										(int) tiledrawspace.width, (int) tiledrawspace.height,
+										new Color(0, 0, 0, 0), null);
+								t.DrawTileObjects(g, tiledrawspace.left(), tiledrawspace.top(), tilesize);
+							}
+							g.setStroke(new BasicStroke(1));
+							g.setColor(Color.RED);
+							g.drawRect((int) tiledrawspace.left(), (int) tiledrawspace.top(),
+									(int) tiledrawspace.width, (int) tiledrawspace.height);
+							g.setColor(Color.WHITE);
+							g.setFont(small_font);
+							g.drawString(String.format("%d %d", tix, tiy), (int) tiledrawspace.left(),
+									(int) (tiledrawspace.top() + g.getFontMetrics().getAscent()));
 
-						g.setColor(Color.lightGray);
-						g.fillRect((int) dx, (int) dy, (int) (tilesize + TILE_BUFFER), (int) (tilesize + TILE_BUFFER));
-					} else {
-
-						g.drawImage(AssetManager.AMGR.getAsset(level[px][py].floor).src, (int) dx, (int) dy,
-								(int) tilesize + TILE_BUFFER, (int) tilesize + TILE_BUFFER,
-								new Color(0, 0, 0, 0), null);
-
-						// g.setColor(new Color(48, 173, 23));
-						// g.fillRect((int) dx, (int) dy, (int) tilesize + TILE_BUFFER, (int) tilesize +
-						// TILE_BUFFER);
-						tile.DrawTileObjects(g, dx, dy, tilesize);
+						}
 					}
+					g.setStroke(new BasicStroke(4));
+					g.setColor(Color.BLUE);
+					g.drawRect((int) chunkdrawspace.left(), (int) chunkdrawspace.top(),
+							(int) chunkdrawspace.width, (int) chunkdrawspace.height);
+					g.setColor(Color.YELLOW);
+					g.setFont(def_font);
+					g.drawString(String.format("%d %d", cix, ciy), (int) chunkdrawspace.left(),
+							(int) (chunkdrawspace.top() + g.getFontMetrics().getAscent()));
 				}
-
-				g.setStroke(new BasicStroke(1));
-				//g.setColor(Color.BLACK);
-				//g.drawRect((int) dx, (int) dy, (int) tilesize, (int) tilesize);
-				return 0;
 			}
-		}.run(ROWS, COLUMNS, camera_x, camera_y, tilesize);
+		}
 
 		g.setColor(Color.GREEN);
 		g.drawLine((int) p.centerx(), (int) p.centery(), (int) mouse_x, (int) mouse_y);
@@ -173,33 +212,17 @@ public class Application extends JFrame {
 
 		for (Bullet b : bullets) {
 			b.paint(g);
-			//g.setColor(Color.RED);
-			//g.drawRect((int) b.x, (int) b.y, (int) b.width, (int) b.height);
+			// g.setColor(Color.RED);
+			// g.drawRect((int) b.x, (int) b.y, (int) b.width, (int) b.height);
 		}
-
-		g.setColor(new Color(255, 0, 0, 40));
-		g.fillRect(0, (int) (CANH * (1 - transition_edge)), CANW, (int) (CANH * transition_edge));
-		g.fillRect(0, 0, CANW, (int) (CANH * transition_edge));
-
-		g.setColor(new Color(0, 255, 0, 40));
-		g.fillRect(0, 0, (int) (CANW * transition_edge), CANH);
-		g.fillRect((int) (CANW * (1 - transition_edge)), 0, (int) (CANW * transition_edge), CANH);
-
-		g.setColor(new Color(0, 0, 255, 40));
-		g.fillRect(0, 0, (int) (CANW * transition_corner), (int) (CANH * transition_corner));
-		g.fillRect(0, (int) (CANH * (1 - transition_corner)), (int) (CANW * transition_corner),
-				(int) (CANH * transition_corner));
-		g.fillRect((int) (CANW * (1 - transition_corner)), (int) (CANH * (1 - transition_corner)),
-				(int) (CANW * transition_corner), (int) (CANH * transition_corner));
-		g.fillRect((int) (CANW * (1 - transition_corner)), 0, (int) (CANW * transition_corner),
-				(int) (CANH * transition_corner));
-
 		p.paint(g);
 
 		for (Zombie z : zombies) {
 			z.paint(g);
 		}
-		drawInventory(g);
+		if (inventory_up)
+			drawInventory(g);
+
 		drawGUI(g);
 	}
 
@@ -237,19 +260,19 @@ public class Application extends JFrame {
 		}
 	}
 
-	void drawInventory(Graphics2D g){
-		g.setColor(new Color(200,200,200,180));
-		g.fillRect(50, 50, CANW-100, CANH-100);
+	void drawInventory(Graphics2D g) {
+		g.setColor(new Color(200, 200, 200, 180));
+		g.fillRect(50, 50, CANW - 100, CANH - 100);
 
 		g.setColor(Color.BLACK);
-		for(int i =0;i<p.inventory.stacks_max;i++){
+		for (int i = 0; i < p.inventory.stacks_max; i++) {
 			Stack stack = p.inventory.stacks[i];
 			String msg = "";
-			if(stack==null)
+			if (stack == null)
 				msg = "null";
 			else
 				msg = String.format("%s (%d)", stack.getItem().name, stack.count);
-			g.drawString(msg, 60, 60+g.getFontMetrics().getAscent()*(i+1));
+			g.drawString(msg, 60, 60 + g.getFontMetrics().getAscent() * (i + 1));
 		}
 	}
 
@@ -313,21 +336,21 @@ public class Application extends JFrame {
 			boolean left_intersect = top_right.x >= object_bottom_left.x && top_left.x < object_bottom_left.x;
 			boolean right_intersect = top_left.x <= object_bottom_right.x && top_right.x > object_bottom_right.x;
 			boolean center_intersect_x = top_left.x >= object_bottom_left.x && top_right.x <= object_bottom_right.x;
-			boolean pass_by_x = top_right.x <= object_bottom_left.x && top_left.x+dx >= object_bottom_right.x;
+			boolean pass_by_x = top_right.x <= object_bottom_left.x && top_left.x + dx >= object_bottom_right.x;
 
 			boolean top_intersect = bottom_right.y >= object_top_left.y && top_left.y < object_top_left.y;
 			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_right.y > object_bottom_right.y;
 			boolean center_intersect_y = bottom_right.y <= object_bottom_right.y && top_left.y >= object_top_left.y;
-			boolean pass_by_y = bottom_right.y <= object_top_left.y && top_left.y-dy >= object_bottom_right.y;
+			boolean pass_by_y = bottom_right.y <= object_top_left.y && top_left.y - dy >= object_bottom_right.y;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if ((inline_y||pass_by_x) && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
+			if ((inline_y || pass_by_x) && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.ceil(a.top() - b.bottom());
 				return ret;
-			} else if ((inline_x||pass_by_y) && a.right() <= b.left() && a.right() + dx > b.left()) {
+			} else if ((inline_x || pass_by_y) && a.right() <= b.left() && a.right() + dx > b.left()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(b.left() - a.right());
 			}
@@ -341,11 +364,11 @@ public class Application extends JFrame {
 			boolean left_intersect = top_right.x >= object_bottom_left.x && top_left.x < object_bottom_left.x;
 			boolean right_intersect = top_left.x <= object_bottom_right.x && top_right.x > object_bottom_right.x;
 			boolean center_intersect_x = top_left.x >= object_bottom_left.x && top_right.x <= object_bottom_right.x;
-			boolean pass_by_x = top_right.x <= object_bottom_left.x && top_left.x+dx >= object_bottom_right.x;
+			boolean pass_by_x = top_right.x <= object_bottom_left.x && top_left.x + dx >= object_bottom_right.x;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			// check if object is valid before move
-			if ((inline_y||pass_by_x) && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
+			if ((inline_y || pass_by_x) && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.ceil(a.top() - b.bottom());
 			}
@@ -361,20 +384,20 @@ public class Application extends JFrame {
 			boolean left_intersect = top_right.x >= object_bottom_left.x && top_left.x < object_bottom_left.x;
 			boolean right_intersect = top_left.x <= object_bottom_right.x && top_right.x > object_bottom_right.x;
 			boolean center_intersect_x = top_left.x >= object_bottom_left.x && top_right.x <= object_bottom_right.x;
-			boolean pass_by_x = top_right.x <= object_bottom_left.x && top_left.x+dx >= object_bottom_right.x;
+			boolean pass_by_x = top_right.x <= object_bottom_left.x && top_left.x + dx >= object_bottom_right.x;
 
 			boolean top_intersect = bottom_left.y >= object_top_right.y && top_left.y < object_top_right.y;
 			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_left.y > object_bottom_right.y;
 			boolean center_intersect_y = bottom_left.y <= object_bottom_right.y && top_left.y >= object_top_right.y;
-			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_left.y-dy >= object_bottom_right.y;
+			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_left.y - dy >= object_bottom_right.y;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if ((inline_y||pass_by_x) && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
+			if ((inline_y || pass_by_x) && a.top() <= b.bottom() && a.top() + dy > b.bottom()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.ceil(a.top() - b.bottom());
-			} else if ((inline_x||pass_by_y) && a.left() >= b.right() && a.left() + dx < b.right()) {
+			} else if ((inline_x || pass_by_y) && a.left() >= b.right() && a.left() + dx < b.right()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(a.left() - b.right());
 			}
@@ -388,11 +411,11 @@ public class Application extends JFrame {
 			boolean top_intersect = bottom_left.y >= object_top_right.y && top_left.y < object_top_right.y;
 			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_left.y > object_bottom_right.y;
 			boolean center_intersect_y = bottom_left.y <= object_bottom_right.y && top_left.y >= object_top_right.y;
-			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_left.y-dy >= object_bottom_right.y;
+			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_left.y - dy >= object_bottom_right.y;
 
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if ((inline_x||pass_by_y) && a.left() >= b.right() && a.left() + dx < b.right()) {
+			if ((inline_x || pass_by_y) && a.left() >= b.right() && a.left() + dx < b.right()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.ceil(b.right() - a.left());
 			}
@@ -408,20 +431,20 @@ public class Application extends JFrame {
 			boolean left_intersect = bottom_right.x >= object_top_left.x && top_left.x < object_top_left.x;
 			boolean right_intersect = top_left.x <= object_bottom_right.x && bottom_right.x > object_bottom_right.x;
 			boolean center_intersect_x = top_left.x >= object_top_left.x && bottom_right.x < object_bottom_right.x;
-			boolean pass_by_x = bottom_right.x <= object_top_left.x && top_left.x+dx >= object_bottom_right.x;
+			boolean pass_by_x = bottom_right.x <= object_top_left.x && top_left.x + dx >= object_bottom_right.x;
 
 			boolean top_intersect = bottom_left.y >= object_top_right.y && top_left.y < object_top_right.y;
 			boolean bottom_intersect = top_left.y <= object_bottom_right.y && bottom_left.y > object_bottom_right.y;
 			boolean center_intersect_y = bottom_left.y <= object_bottom_right.y && top_left.y >= object_top_right.y;
-			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_left.y-dy >= object_bottom_right.y;
+			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_left.y - dy >= object_bottom_right.y;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if ((inline_y||pass_by_x) && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
+			if ((inline_y || pass_by_x) && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.ceil(a.bottom() - b.top());
-			} else if ((inline_x||pass_by_y) && a.left() >= b.right() && a.left() + dx < b.right()) {
+			} else if ((inline_x || pass_by_y) && a.left() >= b.right() && a.left() + dx < b.right()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(a.left() - b.right());
 			}
@@ -435,11 +458,11 @@ public class Application extends JFrame {
 			boolean left_intersect = bottom_right.x >= object_top_left.x && bottom_left.x < object_top_left.x;
 			boolean right_intersect = bottom_left.x <= object_top_right.x && bottom_right.x > object_top_right.x;
 			boolean center_intersect_x = bottom_left.x >= object_top_left.x && bottom_right.x <= object_top_right.x;
-			boolean pass_by_x = bottom_right.x <= object_top_left.x && bottom_left.x+dx >= object_top_right.x;
+			boolean pass_by_x = bottom_right.x <= object_top_left.x && bottom_left.x + dx >= object_top_right.x;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			// check if object is valid before move
-			if ((inline_y||pass_by_x) && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
+			if ((inline_y || pass_by_x) && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.floor(b.top() - a.bottom());
 			}
@@ -455,20 +478,20 @@ public class Application extends JFrame {
 			boolean left_intersect = bottom_right.x >= object_top_left.x && bottom_left.x < object_top_left.x;
 			boolean right_intersect = bottom_left.x <= object_top_right.x && bottom_right.x > object_top_right.x;
 			boolean center_intersect_x = bottom_left.x >= object_top_left.x && bottom_right.x <= object_top_right.x;
-			boolean pass_by_x = bottom_right.x <= object_top_left.x && bottom_left.x+dx >= object_top_right.x;
+			boolean pass_by_x = bottom_right.x <= object_top_left.x && bottom_left.x + dx >= object_top_right.x;
 
 			boolean top_intersect = bottom_left.y >= object_top_right.y && top_right.y < object_top_right.y;
 			boolean bottom_intersect = top_right.y <= object_bottom_left.y && bottom_left.y > object_bottom_left.y;
 			boolean center_intersect_y = bottom_left.y <= object_bottom_left.y && top_right.y >= object_top_right.y;
-			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_right.y-dy >= object_bottom_left.y;
+			boolean pass_by_y = bottom_left.y <= object_top_right.y && top_right.y - dy >= object_bottom_left.y;
 
 			boolean inline_y = left_intersect || right_intersect || center_intersect_x;
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if ((inline_y||pass_by_x) && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
+			if ((inline_y || pass_by_x) && a.bottom() <= b.top() && a.bottom() - dy > b.top()) {
 				ret.valid_change_y = true;
 				ret.change_y = Math.ceil(a.bottom() - b.top());
-			} else if ((inline_x||pass_by_y) && a.right() <= b.left() && a.right() + dx > b.left()) {
+			} else if ((inline_x || pass_by_y) && a.right() <= b.left() && a.right() + dx > b.left()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(b.left() - a.right());
 			}
@@ -483,11 +506,11 @@ public class Application extends JFrame {
 			boolean top_intersect = bottom_right.y >= object_top_left.y && top_right.y < object_top_left.y;
 			boolean bottom_intersect = top_right.y <= object_bottom_left.y && bottom_right.y > object_bottom_left.y;
 			boolean center_intersect_y = bottom_right.y <= object_bottom_left.y && top_right.y >= object_top_left.y;
-			boolean pass_by_y = bottom_right.y <= object_top_left.y && top_right.y-dy >= object_bottom_left.y;
+			boolean pass_by_y = bottom_right.y <= object_top_left.y && top_right.y - dy >= object_bottom_left.y;
 
 			boolean inline_x = top_intersect || bottom_intersect || center_intersect_y;
 			// check if object is valid before move
-			if ((inline_x||pass_by_y) && a.right() <= b.left() && a.right() + dx > b.left()) {
+			if ((inline_x || pass_by_y) && a.right() <= b.left() && a.right() + dx > b.left()) {
 				ret.valid_change_x = true;
 				ret.change_x = Math.floor(b.left() - a.right());
 			}
@@ -510,8 +533,6 @@ public class Application extends JFrame {
 	double anim_timer = 150;
 
 	void tick(int tr) {
-		int COLUMNS = (int) ((int) Math.ceil(CANW / TILEBASESIZE) / zoom_mult) + 2;
-		int ROWS = (int) ((int) Math.ceil(CANH / TILEBASESIZE) / zoom_mult) + 2;
 		double tilesize = TILEBASESIZE * zoom_mult;
 
 		if (!console_toggle && Peripherals.PERI.keyPressed(KeyEvent.VK_MINUS)) {
@@ -519,37 +540,74 @@ public class Application extends JFrame {
 			console_up = !console_up;
 			current_command = "";
 		}
+
+		if (Peripherals.PERI.keyPressed(KeyEvent.VK_G)) {
+			if (!inventory_toggle) {
+				inventory_toggle = true;
+				inventory_up = !inventory_up;
+			}
+		} else {
+			inventory_toggle = false;
+		}
+
 		if (!Peripherals.PERI.keyPressed(KeyEvent.VK_MINUS)) {
 			console_toggle = false;
 		}
 		if (console_up)
 			return;
 
-		int intent_x = 0;
-		int intent_y = 0;
-		if (Peripherals.PERI.keyPressed('a'))
-			intent_x--;
-		if (Peripherals.PERI.keyPressed('d'))
-			intent_x++;
-		if (Peripherals.PERI.keyPressed('w'))
-			intent_y++;
-		if (Peripherals.PERI.keyPressed('s'))
-			intent_y--;
+		{
+			int intent_x = 0;
+			int intent_y = 0;
+			if (Peripherals.PERI.keyPressed(KeyEvent.VK_LEFT))
+				intent_x--;
+			if (Peripherals.PERI.keyPressed(KeyEvent.VK_RIGHT))
+				intent_x++;
+			if (Peripherals.PERI.keyPressed(KeyEvent.VK_UP))
+				intent_y++;
+			if (Peripherals.PERI.keyPressed(KeyEvent.VK_DOWN))
+				intent_y--;
 
-		if (intent_x != 0 || intent_y != 0) {
-			double sprint = Peripherals.PERI.keyPressed(KeyEvent.VK_SHIFT) && p.stamina > 20 ? p.SPRINT_SPEED_MULT() : 1;
-			double intent_direction = Math.atan2(intent_y, intent_x);
-			p.angle = intent_direction;
+			if (intent_x != 0 || intent_y != 0) {
+				double intent_direction = Math.atan2(intent_y, intent_x);
+				final double speed = 0.05;
+				double dx = Math.cos(intent_direction) * speed;
+				double dy = Math.sin(intent_direction) * speed;
 
-			displacement_x = Math.cos(intent_direction) * p.BASE_SPEED() * sprint;
-			displacement_y = Math.sin(intent_direction) * p.BASE_SPEED() * sprint;
-			p.magnitude = p.BASE_SPEED() * sprint;
-
-		} else {
-			displacement_x = 0;
-			displacement_y = 0;
+				camera_x += dx;
+				camera_y -= dy;
+				p.x -= dx * tilesize;
+				p.y += dy * tilesize;
+			}
 		}
-		//System.out.println(String.format("x=%d y=%d", (int)((camera_x+p.x+p.width/2)/tilesize), (int)((camera_y+p.y+p.height/2)/tilesize)));
+		{
+			int intent_x = 0;
+			int intent_y = 0;
+			if (Peripherals.PERI.keyPressed(KeyEvent.VK_A))
+				intent_x--;
+			if (Peripherals.PERI.keyPressed(KeyEvent.VK_D))
+				intent_x++;
+			if (Peripherals.PERI.keyPressed(KeyEvent.VK_W))
+				intent_y++;
+			if (Peripherals.PERI.keyPressed(KeyEvent.VK_S))
+				intent_y--;
+
+			if (intent_x != 0 || intent_y != 0) {
+				double sprint = Peripherals.PERI.keyPressed(KeyEvent.VK_SHIFT) && p.stamina > 20 ? p.SPRINT_SPEED_MULT()
+						: 1;
+				double intent_direction = Math.atan2(intent_y, intent_x);
+				p.angle = intent_direction;
+
+				displacement_x = Math.cos(intent_direction) * p.BASE_SPEED() * sprint;
+				displacement_y = Math.sin(intent_direction) * p.BASE_SPEED() * sprint;
+				p.magnitude = p.BASE_SPEED() * sprint;
+
+			} else {
+				displacement_x = 0;
+				displacement_y = 0;
+			}
+		}
+
 		if (Math.sqrt(Math.pow(mouse_y - p.centery(), 2) + Math.pow(mouse_x - p.centerx(), 2)) > p.width / 2) {
 			p.look_angle = Math.atan2((mouse_y - p.centery()), (mouse_x - p.centerx()));
 		}
@@ -577,145 +635,148 @@ public class Application extends JFrame {
 			bullets.add(b);
 
 		}
-		if (animating_screen == false) {
-			if (p.centerx() > CANW * (1 - transition_edge)) {
-				animating_screen = true;
-				animation_pos = 0;
-				anim_speed_x = anim_base_speed;
-				anim_speed_y = 0;
-			}
-			if (p.centerx() < CANW * transition_edge) {
-				animating_screen = true;
-				animation_pos = 0;
-				anim_speed_x = -anim_base_speed;
-				anim_speed_y = 0;
-			}
-			if (p.centery() < CANH * transition_edge) {
-				animating_screen = true;
-				animation_pos = 0;
-				anim_speed_y = -anim_base_speed;
-				anim_speed_x = 0;
-			}
-			if (p.centery() > CANH * (1 - transition_edge)) {
-				animating_screen = true;
-				animation_pos = 0;
-				anim_speed_y = anim_base_speed;
-				anim_speed_x = 0;
-			}
-			if (p.centery() > CANH * (1 - transition_corner) && p.centerx() > CANW * (1 - transition_corner)) {// bottom
-																												// right
-				animating_screen = true;
-				animation_pos = 0;
-				anim_speed_y = anim_base_speed / Math.sqrt(2);
-				anim_speed_x = anim_base_speed / Math.sqrt(2);
-			}
-			if (p.centery() < CANH * transition_corner && p.centerx() > CANW * (1 - transition_corner)) {// top
-																											// right
-				animating_screen = true;
-				animation_pos = 0;
-				anim_speed_y = -anim_base_speed / Math.sqrt(2);
-				anim_speed_x = anim_base_speed / Math.sqrt(2);
-			}
-			if (p.centery() < CANH * transition_corner && p.centerx() < CANW * transition_corner) {// top left
-				animating_screen = true;
-				animation_pos = 0;
-				anim_speed_y = -anim_base_speed / Math.sqrt(2);
-				anim_speed_x = -anim_base_speed / Math.sqrt(2);
-			}
-			if (p.centery() > CANH * (1 - transition_corner) && p.centerx() < CANW * transition_corner) {// bottom
-																											// left
-				animating_screen = true;
-				animation_pos = 0;
-				anim_speed_y = anim_base_speed / Math.sqrt(2);
-				anim_speed_x = -anim_base_speed / Math.sqrt(2);
-			}
-		} else {
-			camera_x += anim_speed_x;
-			p.x -= anim_speed_x;
-			camera_y += anim_speed_y;
-			p.y -= anim_speed_y;
-			for (int i = 0; i < bullets.size(); i++) {
-				Bullet b = bullets.get(i);
-				b.x -= anim_speed_x;
-				b.y -= anim_speed_y;
-				bullets.set(i, b);
-			}
-			for (int i = 0; i < zombies.size(); i++) {
-				Zombie z = zombies.get(i);
-				z.x -= anim_speed_x;
-				z.y -= anim_speed_y;
-				zombies.set(i, z);
-			}
+		Rect view = new Rect(camera_x, camera_y, CANW, CANH);
+		double offsetx = -(view.left() / chunktilesx) % 1;
+		double offsety = -(view.top() / chunktilesy) % 1;
 
-			animation_pos += 1;
-			if (animation_pos >= anim_timer)
-				animating_screen = false;
-		}
+		for (int chunkx = 0; chunkx < LEVEL_W; chunkx++) {
+			for (int chunky = 0; chunky < LEVEL_H; chunky++) {
+				Rect chunkdrawspace = new Rect(((chunkx + offsetx) * chunktilesx) * tilesize,
+						((chunky + offsety) * chunktilesy) * tilesize, tilesize * chunktilesx, tilesize * chunktilesy);
+				if (!((chunkdrawspace.left() >= view.left() && chunkdrawspace.left() <= view.right())
+						|| (chunkdrawspace.right() >= view.left() && chunkdrawspace.right() <= view.right())
+						|| (chunkdrawspace.left() <= view.left() && chunkdrawspace.right() >= view.right())))
+					continue;
+				if (!((chunkdrawspace.top() >= view.top() && chunkdrawspace.top() <= view.bottom())
+						|| (chunkdrawspace.bottom() >= view.top() && chunkdrawspace.bottom() <= view.bottom())
+						|| (chunkdrawspace.top() <= view.top() && chunkdrawspace.bottom() >= view.bottom())))
+					continue;
 
-		int returns_[] = new TileAction() {
-			@Override
-			public int action(float x, float y, double dx, double dy, int ix, int iy,
-					int px, int py) {
+				if (chunkx >= 0 && chunkx < LEVEL_W && chunky >= 0 && chunky < LEVEL_H) {
+					Chunk chunk = level[chunkx][chunky];
+					int cix = (int) (camera_x / chunktilesx) + chunkx;
+					int ciy = (int) (camera_y / chunktilesy) + chunky;
 
-				int retx = 0;
-				int rety = 0;
-
-				if (px >= 0 && px < LEVEL_W && py >= 0 && py < LEVEL_H) {
-					if (level[px][py] != null) {
-						Tile tile = level[px][py];
-
-						for (TileObject o : tile.tileObjects) {
-							if (!o.collider)
+					for (int tx = 0; tx < chunktilesx; tx++) {
+						for (int ty = 0; ty < chunktilesy; ty++) {
+							int tix = (int) (tx + cix * chunktilesx);
+							int tiy = (int) (ty + ciy * chunktilesy);
+							Rect tiledrawspace = new Rect(((chunkx + offsetx) * chunktilesx + tx) * tilesize,
+									((chunky + offsety) * chunktilesy + ty) * tilesize, tilesize, tilesize);
+							if (!(tx >= 0 && tx < chunktilesx && ty >= 0 && ty < chunktilesy))
 								continue;
-							GameObject o1 = o.toGameObject(dx, dy, tilesize);
-							CollisionReturn ret = staticDynamicCollision(p, o1);
-							if (ret.valid_change_x) {
-								displacement_x = ret.change_x;
-								retx = 1;
-							}
-							if (ret.valid_change_y) {
-								displacement_y = ret.change_y;
-								rety = 1;
-							}
-							for (int i = 0; i < bullets.size(); i++) {
-								Bullet b = bullets.get(i);
-								CollisionReturn ret2 = staticDynamicCollision(b, o1);
-								if (ret2.colliding()) {
-									bullets.remove(b);
-									i--;
+							Tile tile = getTile(tix, tiy);
+							for (TileObject o : tile.tileObjects) {
+								if (!o.collider)
+									continue;
+								GameObject o1 = o.toGameObject(tiledrawspace.left(), tiledrawspace.top(), tilesize);
+								CollisionReturn ret = staticDynamicCollision(p, o1);
+								if (ret.valid_change_x) {
+									displacement_x = ret.change_x;
+								}
+								if (ret.valid_change_y) {
+									displacement_y = ret.change_y;
+								}
+								for (int i = 0; i < bullets.size(); i++) {
+									Bullet b = bullets.get(i);
+									CollisionReturn ret2 = staticDynamicCollision(b, o1);
+									if (ret2.colliding()) {
+										bullets.remove(b);
+										i--;
+									}
 								}
 							}
 						}
 					}
+
 				}
-				return (int) (retx + 2 * rety);
-				// 0 = stop none
-				// 1 = stop retx
-				// 2 = stop rety
-				// 3 = stop bothretx and rety
-
 			}
-		}.run(ROWS, COLUMNS, camera_x, camera_y, tilesize);
-
-		int val_ = MathUtil.maxInList(returns_);
-		// System.out.println(String.format("%.2f %.2f", displacement_x,
-		// displacement_y));
-		switch (val_) {
-			case 0:
-				p.x += displacement_x;
-				p.y -= displacement_y;
-				break;
-			case 1:
-				p.y -= displacement_y;
-				p.x += displacement_x * p.WALL_FRICTION_CONST;
-				break;
-			case 2:
-				p.x += displacement_x;
-				p.y -= displacement_y * p.WALL_FRICTION_CONST;
-				break;
-			case 3:
-				break;
 		}
+
+		/*
+		 * if (animating_screen == false) {
+		 * if (p.centerx() > CANW * (1 - transition_edge)) {
+		 * animating_screen = true;
+		 * animation_pos = 0;
+		 * anim_speed_x = anim_base_speed;
+		 * anim_speed_y = 0;
+		 * }
+		 * if (p.centerx() < CANW * transition_edge) {
+		 * animating_screen = true;
+		 * animation_pos = 0;
+		 * anim_speed_x = -anim_base_speed;
+		 * anim_speed_y = 0;
+		 * }
+		 * if (p.centery() < CANH * transition_edge) {
+		 * animating_screen = true;
+		 * animation_pos = 0;
+		 * anim_speed_y = -anim_base_speed;
+		 * anim_speed_x = 0;
+		 * }
+		 * if (p.centery() > CANH * (1 - transition_edge)) {
+		 * animating_screen = true;
+		 * animation_pos = 0;
+		 * anim_speed_y = anim_base_speed;
+		 * anim_speed_x = 0;
+		 * }
+		 * if (p.centery() > CANH * (1 - transition_corner) && p.centerx() > CANW * (1 -
+		 * transition_corner)) {// bottom
+		 * // right
+		 * animating_screen = true;
+		 * animation_pos = 0;
+		 * anim_speed_y = anim_base_speed / Math.sqrt(2);
+		 * anim_speed_x = anim_base_speed / Math.sqrt(2);
+		 * }
+		 * if (p.centery() < CANH * transition_corner && p.centerx() > CANW * (1 -
+		 * transition_corner)) {// top
+		 * // right
+		 * animating_screen = true;
+		 * animation_pos = 0;
+		 * anim_speed_y = -anim_base_speed / Math.sqrt(2);
+		 * anim_speed_x = anim_base_speed / Math.sqrt(2);
+		 * }
+		 * if (p.centery() < CANH * transition_corner && p.centerx() < CANW *
+		 * transition_corner) {// top left
+		 * animating_screen = true;
+		 * animation_pos = 0;
+		 * anim_speed_y = -anim_base_speed / Math.sqrt(2);
+		 * anim_speed_x = -anim_base_speed / Math.sqrt(2);
+		 * }
+		 * if (p.centery() > CANH * (1 - transition_corner) && p.centerx() < CANW *
+		 * transition_corner) {// bottom
+		 * // left
+		 * animating_screen = true;
+		 * animation_pos = 0;
+		 * anim_speed_y = anim_base_speed / Math.sqrt(2);
+		 * anim_speed_x = -anim_base_speed / Math.sqrt(2);
+		 * }
+		 * } else {
+		 * camera_x += anim_speed_x;
+		 * p.x -= anim_speed_x;
+		 * camera_y += anim_speed_y;
+		 * p.y -= anim_speed_y;
+		 * for (int i = 0; i < bullets.size(); i++) {
+		 * Bullet b = bullets.get(i);
+		 * b.x -= anim_speed_x;
+		 * b.y -= anim_speed_y;
+		 * bullets.set(i, b);
+		 * }
+		 * for (int i = 0; i < zombies.size(); i++) {
+		 * Zombie z = zombies.get(i);
+		 * z.x -= anim_speed_x;
+		 * z.y -= anim_speed_y;
+		 * zombies.set(i, z);
+		 * }
+		 * 
+		 * animation_pos += 1;
+		 * if (animation_pos >= anim_timer)
+		 * animating_screen = false;
+		 * }
+		 */
+
+		p.x += displacement_x;
+		p.y -= displacement_y;
+
 		for (int i = 0; i < bullets.size(); i++) {
 			Bullet b = bullets.get(i);
 			b.x += Math.cos(b.angle) * b.magnitude;
@@ -729,7 +790,6 @@ public class Application extends JFrame {
 				Zombie z = zombies.get(z1);
 				CollisionReturn ret = staticDynamicCollision(b, z);
 				if (ret.colliding()) {
-					System.out.println("hit zombie");
 					z.health -= b.damage;
 					if (z.health <= 0) {
 						zombies.remove(z1);
@@ -784,6 +844,7 @@ public class Application extends JFrame {
 			console_history.clear();
 			return "cleared console successfully";
 		} else if (current_command.startsWith("tile")) {
+
 			int ix = -1;
 			int iy = -1;
 			try {
@@ -793,12 +854,13 @@ public class Application extends JFrame {
 				return "failed to parse arguments";
 			}
 			String assetname = args[3];
-			if (level[ix][iy] == null)
-				level[ix][iy] = new Tile();
+			Tile t = new Tile();
+			t.floor = AssetManager.AMGR.assetID(assetname);
+			setTile(ix, iy, t);
 
-			level[ix][iy].floor = AssetManager.AMGR.assetID(assetname);
 			return "successfully changed tile asset";
 		} else if (current_command.startsWith("wall")) {
+
 			int ix = -1;
 			int iy = -1;
 			try {
@@ -807,10 +869,17 @@ public class Application extends JFrame {
 			} catch (NumberFormatException e) {
 				return "failed to parse arguments";
 			}
-			if (level[ix][iy] == null)
-				level[ix][iy] = new Tile();
 
-			level[ix][iy].addTileObject(wall);
+			int cx = (int) (ix / chunktilesx);
+			int cy = (int) (iy / chunktilesy);
+			int tx = ix - cx * chunktilesx;
+			int ty = iy - cy * chunktilesy;
+
+			if (level[cx][cy] == null)
+				return "tile not initialized";
+
+			level[cx][cy].tiles[tx][ty].addTileObject(wall);
+
 			return "successfully added wall tile object";
 		} else if (current_command.startsWith("cleartile")) {
 			int ix = -1;
@@ -821,12 +890,18 @@ public class Application extends JFrame {
 			} catch (NumberFormatException e) {
 				return "failed to parse arguments";
 			}
-			if (level[ix][iy] == null)
-				return "tile is null";
+			int cx = (int) (ix / chunktilesx);
+			int cy = (int) (iy / chunktilesy);
+			int tx = ix - cx * chunktilesx;
+			int ty = iy - cy * chunktilesy;
 
-			int count = level[ix][iy].tileObjects.size();
-			level[ix][iy].tileObjects.clear();
+			if (level[cx][cy] == null)
+				return "tile not initialized";
+
+			int count = level[cx][cy].tiles[tx][ty].tileObjects.size();
+			level[cx][cy].tiles[tx][ty].tileObjects.clear();
 			return String.format("successfully cleared %d tile objects", count);
+
 		} else if (current_command.startsWith("nulltile")) {
 			int ix = -1;
 			int iy = -1;
@@ -841,7 +916,7 @@ public class Application extends JFrame {
 
 			level[ix][iy] = null;
 			return "successfully reset tile";
-		}else if (current_command.startsWith("giveitem")) {
+		} else if (current_command.startsWith("giveitem")) {
 			String itemname;
 			int count;
 			try {
@@ -850,7 +925,7 @@ public class Application extends JFrame {
 			} catch (NumberFormatException e) {
 				return "failed to parse arguments";
 			}
-			
+
 			int ret = p.inventory.addItemsToInv(ItemManager.IMGR.itemID(itemname), count);
 			return String.format("return=%d", ret);
 		}
@@ -869,6 +944,9 @@ public class Application extends JFrame {
 
 		ItemManager.IMGR.addAsset("stone", -1, 16);
 	}
+
+	boolean inventory_up = false;
+	boolean inventory_toggle = false;
 
 	public void addEventHooks() {
 		Peripherals.PERI.addMouseMoveHook(new MouseEvent() {
@@ -918,6 +996,8 @@ public class Application extends JFrame {
 					if (!Peripherals.PERI.keyPressed(KeyEvent.VK_BACK_SPACE)) {
 						backspace_toggle = false;
 					}
+				} else {
+
 				}
 			}
 
@@ -925,6 +1005,28 @@ public class Application extends JFrame {
 	}
 
 	TileObject wall;
+
+	void setTile(int x, int y, Tile t) {
+		int cx = (int) (x / chunktilesx);
+		int cy = (int) (y / chunktilesy);
+		int tx = x - cx * chunktilesx;
+		int ty = y - cy * chunktilesy;
+
+		if (level[cx][cy] == null)
+			level[cx][cy] = new Chunk(cx, cy, chunktilesx, chunktilesy);
+		level[cx][cy].tiles[tx][ty] = t;
+	}
+
+	Tile getTile(int x, int y) {
+		int cx = (int) (x / chunktilesx);
+		int cy = (int) (y / chunktilesy);
+		int tx = x - cx * chunktilesx;
+		int ty = y - cy * chunktilesy;
+
+		if (level[cx][cy] == null)
+			return null;
+		return level[cx][cy].tiles[tx][ty];
+	}
 
 	void InitializeLevel() {
 		wall = new TileObject(0, 0, 1, 1, AssetManager.AMGR.assetID("stone"), true) {
@@ -937,8 +1039,9 @@ public class Application extends JFrame {
 			}
 
 		};
-		for (int y = 0; y < LEVEL_H; y++) {
-			for (int x = 0; x < LEVEL_W; x++) {
+		for (int y = 0; y < LEVEL_H * chunktilesy; y++) {
+			for (int x = 0; x < LEVEL_W * chunktilesx; x++) {
+
 				Tile t = new Tile();
 				t.floor = AssetManager.AMGR.assetID("grass");
 				if (Math.random() > 0.95f) {// TREE
@@ -991,7 +1094,8 @@ public class Application extends JFrame {
 					};
 					t.addTileObject(weeds);
 				}
-				level[x][y] = t;
+				setTile(x, y, t);
+
 			}
 		}
 	}
@@ -1019,7 +1123,6 @@ public class Application extends JFrame {
 		panel.addMouseWheelListener(Peripherals.PERI);
 
 		ImportAssets();
-
 		InitializeLevel();
 		InitializeEnemies();
 
@@ -1064,29 +1167,6 @@ public class Application extends JFrame {
 		setTitle("Application");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLocationRelativeTo(null);
-	}
-}
-
-class Tile {
-	Tile() {
-
-	}
-
-	Tile(AssetManager amgr, String floorname) {
-		floor = amgr.assetID(floorname);
-	}
-
-	int floor = -1;
-	List<TileObject> tileObjects = new ArrayList<TileObject>();
-
-	public void addTileObject(TileObject tile) {
-		tileObjects.add(tile);
-	}
-
-	public void DrawTileObjects(Graphics2D g, double dx, double dy, double tilesize) {
-		for (TileObject o : tileObjects) {
-			o.paint(g, dx, dy, tilesize);
-		}
 	}
 }
 

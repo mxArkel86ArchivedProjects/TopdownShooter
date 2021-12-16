@@ -1,4 +1,4 @@
-package game.templates;
+package util;
 
 public class Rect {
     public double x;
@@ -17,8 +17,21 @@ public class Rect {
     public Point[] getObjectPoints(){
         return new Point[]{new Point(0,0), new Point(width, 0), new Point(width, height), new Point(0, height)};
     }
-    Rect(){
+    public Rect(){
 
+    }
+    public double left(){
+        return x;
+    }
+    public double top(){
+        return y;
+    }
+    public double right(){
+        return x+width;
+    }
+
+    public double bottom(){
+        return y+height;
     }
 
 }

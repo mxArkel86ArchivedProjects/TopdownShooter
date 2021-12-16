@@ -1,5 +1,6 @@
 package game.templates;
 
+import game.managers.ItemManager;
 
 public class Stack {
     public int count;

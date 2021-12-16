@@ -62,7 +62,7 @@ public class Player extends Humanoid {
     }
     @Override
     public double BASE_SPEED() {
-        return 1.0;
+        return 1;
     }
     @Override
     public double SPRINT_SPEED_MULT() {

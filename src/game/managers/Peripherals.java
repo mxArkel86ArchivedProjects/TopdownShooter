@@ -1,4 +1,4 @@
-package game;
+package game.managers;
 
 import java.awt.event.*;
 import java.util.HashMap;

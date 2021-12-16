@@ -3,6 +3,8 @@ package game.templates;
 import java.util.ArrayList;
 import java.util.List;
 
+import game.managers.ItemManager;
+
 public class Inventory {
     public int stacks_max;
     public Stack stacks[];
@@ -19,7 +21,8 @@ public class Inventory {
     // 0 - no error
     // 1 - full inventory
     public int addItemsToInv(int item, int count) {
-        for (Stack s : stacks) {
+        Stack stack_[] = stacks.clone();
+        for (Stack s : stack_) {
             if(s==null)
                 continue;
             if (s.itemid == item) {
@@ -30,27 +33,30 @@ public class Inventory {
         if (!hasSpace())
             return 1;
         if (count > 0) {
-            int ret = addItemsNewStacks(item, count);
+            int ret = addItemsNewStacks(stack_, item, count);
             if (ret == 1)
                 return 1;
-            else
+            else{
+                this.stacks = stack_;
                 return 0;
+            }
 
         }
+        this.stacks = stack_;
         return 0;
     }
 
     // 0 - all items have been stored
     // 1 - some items still remain on hold
-    int addItemsNewStacks(int item, int count) {
+    int addItemsNewStacks(Stack stacks_[], int item, int count) {
         final int maxstack = ItemManager.IMGR.getItem(item).max_stack;
         for (int i = 0; i < stacks_max; i++) {
-            if (stacks[i] == null) {
+            if (stacks_[i] == null) {
                 if (count > maxstack) {
-                    stacks[i]= new Stack(item, maxstack);
+                    stacks_[i]= new Stack(item, maxstack);
                     count -= maxstack;
                 } else {
-                    stacks[i]= new Stack(item, count);
+                    stacks_[i]= new Stack(item, count);
                     return 0;
                 }
             }
